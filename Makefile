@@ -4,11 +4,10 @@ EXTRA_FILES = Makefile README
 
 
 all: Server Client
-    emServer
-    emClient
 
-Server: Server.cpp server.h
-    ${CC} ${CFLAGS} Server.cpp -o emServer
+
+Server: Server.cpp Server.h
+	${CC} ${CFLAGS} Server.cpp -o emServer
 
 Client: Client.cpp Client.h
 	${CC} ${CFLAGS} Client.cpp -o emClient
