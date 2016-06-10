@@ -97,7 +97,9 @@ int main(int argc, char *argv[]) {
 
     int serverS = establish(portNum);
     struct sockaddr client;
-    int a = accept(serverS, (struct sockaddr*)&client, (socklen_t*)&client), "accept");
+    int a = accept(serverS, (struct sockaddr*)&client, (socklen_t*)&client);
+
+    checkSyscallServer(a, "accept");
 
     char buf[10];
     readData(a, buf, 5);

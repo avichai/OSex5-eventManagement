@@ -15,7 +15,6 @@
 
 using namespace std;
 
-
 // can give sa as arg?
 int callSocket(struct sockaddr_in sa) {
     int s;
@@ -41,7 +40,7 @@ int main(int argc, char *argv[]) {
 
     int s = callSocket(sa);
 
-    writeData(s);
+    writeData(s, "blabla");
 
     close(s);
     cout << "client finished!!!" << endl;

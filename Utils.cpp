@@ -1,4 +1,3 @@
-
 #define REGISTER "000"
 #define CREATE "001"
 #define GET_TOP_5 "010"
@@ -10,14 +9,18 @@
 #define FAILURE -1
 #define SUCCESS 0
 
+#include <iostream>
+#include <string.h>
+#include <unistd.h>
 
+using namespace std;
 /*
  * Writes data to the given socket.
  * todo: maybe +1 to the strlen
  * todo: should write in loop
  */
 int writeData(int socket, string data) {
-    const char* cData = buf.c_str();
+    const char* cData = data.c_str();
     cerr << "### write ###" << endl;
     cerr << "data: " << cData << endl;
     cerr << "length: " << strlen(cData) << endl;
@@ -39,7 +42,7 @@ int readData(int socket, char* buf, int n) {
     bCount = 0, br = 0;
 
     while (bCount < n) {
-        if ((br = read(s,buf,n-bCount)) > 0) {
+        if ((br = read(socket,buf,n-bCount)) > 0) {
             bCount += br;
             buf += br;
         }
@@ -59,4 +62,5 @@ int readData(int socket, char* buf, int n) {
  */
 int writeToLog(string logName, string data) {
 
+    return SUCCESS;
 }
