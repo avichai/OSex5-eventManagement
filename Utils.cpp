@@ -22,7 +22,7 @@
 
 
 using namespace std;
-
+/**/
 /*
  * Returns true iff the string represents a positive int, and assigns the int
  * value to the given reference.
