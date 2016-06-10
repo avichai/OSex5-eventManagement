@@ -75,6 +75,18 @@ public:
 };
 
 
+/**/
+/*
+ * Returns true iff the string represents a positive int, and assigns the int
+ * value to the given reference.
+ */
+static bool getPosInt(char* str, unsigned int &sizeMess)
+{
+    char* end  = 0;
+    int tmpSizeMess = strtol(str, &end, DECIMAL);
+    sizeMess = (unsigned short) tmpSizeMess;
+}
+
 /*
  * Handles syscall failure in the server side.
  */
@@ -116,7 +128,11 @@ static void terminateServer() {
 }
 
 static void* handleRequest(void* acceptSock) {
+    char sizeMessBuff[5];
+    readData((int)acceptSock, sizeMessBuff, 5);
 
+    unsigned int sizeMess;
+    getPosInt(sizeMessBuff, sizeMess);
 //    checkSyscallServer(pthread_mutex_lock(&gThreadsMutex), "pthread_mutex_lock");
 //    gThreads.erase(pthread_self());
 //    checkSyscallServer(pthread_mutex_unlock(&gThreadsMutex), "pthread_mutex_unlock");
@@ -193,6 +209,7 @@ int main(int argc, char *argv[]) {
         pthread_t requestThread;
         checkSyscallServer(pthread_create(&requestThread, NULL, handleRequest,
                                           NULL), "pthrea_create");
+        gThreads.insert(requestThread);
 
     }
 
