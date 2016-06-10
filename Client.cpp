@@ -3,6 +3,7 @@
 #include <iostream>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <assert.h>
 #include "Client.h"
 #include "Utils.cpp"
 
@@ -24,10 +25,27 @@
 
 using namespace std;
 
+// forward declarations
+static int callServer(struct sockaddr_in sa);
+static void clientRun(string clientName, struct sockaddr_in serverAddr);
+static void handleRespone(string response, string cmd);
 
 
+// global logName
+string logName;
 
-int callSocket(struct sockaddr_in sa) {
+
+/*
+ * Gets the log's name.
+ */
+void getLogName(string clientName) {
+    //todo
+}
+
+/*
+ * Calls the server.
+ */
+static int callServer(struct sockaddr_in sa) {
     int s;
 
     s = socket(AF_INET, SOCK_STREAM, 0);// todo
@@ -44,7 +62,7 @@ int callSocket(struct sockaddr_in sa) {
 /*
  * Runs the client.
  */
-void clientRun(string clientName, struct sockaddr_in serverAddr) {
+static void clientRun(string clientName, struct sockaddr_in serverAddr) {
     bool isRegistered = false;
 
 
@@ -52,18 +70,20 @@ void clientRun(string clientName, struct sockaddr_in serverAddr) {
     const char* cmdC;
     size_t pos;
     int serverS;
-    bool stillRunning = true, isCmd;
+    bool stillRunning = true, sendReq;
     while (stillRunning) {
-        isCmd = true;
+        sendReq = false;
         args = "";
 
         getline(cin, input);
-        cmdC = getNextToken().c_str();
+        cmdC = getNextToken(input, SPACE).c_str();
         if (strcasecmp(cmdC, REGISTER_CMD) == 0) {
             if (isRegistered) {
 
             }
             isRegistered = true;
+            sendReq = true;
+            cmd = REGISTER;
         }
         else if (strcasecmp(cmdC, CREATE_CMD) == 0) {
             if (!isRegistered) {
@@ -89,23 +109,80 @@ void clientRun(string clientName, struct sockaddr_in serverAddr) {
 
         }
         else if (strcasecmp(cmdC, UNREGISTER_CMD) == 0) {
-
+            stillRunning = false;
         }
         else {
-            isCmd = false;
+
         };
 
 
-        if (isCmd) {
-            message = cmd + " " + clientName + " " + args;
-            serverS = callSocket(serverAddr);
+        if (sendReq) {
+            message = cmd + SPACE + clientName + SPACE + args;
+            serverS = callServer(serverAddr);
             writeData(serverS, message);
             char response[MAX_RESPONSE_LEN];
             readData(serverS, response, MAX_RESPONSE_LEN);
+            handleRespone(string(response), cmd);
         }
-
-        stillRunning = false;
     }
+}
+
+/*
+ * Handles the response received by the server.
+ */
+static void handleRespone(string response, string cmd) {
+    bool requestSucceed = getNextToken(response, SPACE) == REQUSET_SUCCESS;
+
+    if (cmd == REGISTER) {
+        if (requestSucceed) {
+
+        }
+        else {
+
+        }
+    }
+    else if (cmd == CREATE) {
+        if (requestSucceed) {
+
+        }
+        else {
+
+        }
+    }
+    else if (cmd == GET_TOP_5) {
+        if (requestSucceed) {
+
+        }
+        else {
+
+        }
+    }
+    else if (cmd == SEND_RSVP) {
+        if (requestSucceed) {
+
+        }
+        else {
+
+        }
+    }
+    else if (cmd == GET_RSVPS_LIST) {
+        if (requestSucceed) {
+
+        }
+        else {
+
+        }
+    }
+    else if (cmd == UNREGISTER) {
+        if (requestSucceed) {
+
+        }
+        else {
+
+        }
+    }
+
+    assert(0); //todo: remove
 }
 
 
@@ -127,6 +204,7 @@ int main(int argc, char *argv[]) {
     serverAddr.sin_port = htons(portNum);
 
     string clientName = string(argv[CLIENT_NAME_INDEX]);
+    getLogName(clientName);
 
     // runs the client
     clientRun(clientName, serverAddr);
