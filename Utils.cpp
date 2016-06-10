@@ -4,12 +4,14 @@
 #include <regex>
 
 
-#define REGISTER "000"
-#define CREATE "001"
-#define GET_TOP_5 "010"
-#define SEND_RSVP "011"
-#define GET_RSVPS_LIST "100"
-#define UNREGISTER "101"
+#define REGISTER "1"
+#define CREATE "2"
+#define GET_TOP_5 "3"
+#define SEND_RSVP "4"
+#define GET_RSVPS_LIST "5"
+#define UNREGISTER "6"
+
+
 #define REQUSET_LEN 3
 #define REQUSET_SUCCESS "0"
 #define REQUSET_FAILURE "1"
@@ -27,7 +29,7 @@ using namespace std;
  * Returns true iff the string represents a positive int, and assigns the int
  * value to the given reference.
  */
-bool isPosInt(char* str, unsigned short &portNum)
+bool isPosShort(char *str, unsigned short &portNum)
 {
     char* end  = 0;
     int tmpCacheSize = strtol(str, &end, DECIMAL);

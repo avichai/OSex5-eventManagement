@@ -192,7 +192,7 @@ int main(int argc, char *argv[]) {
     unsigned short portNum;
     if ((argc != CLIENT_VALID_NARGS) ||
         (!isAddress(argv[SERVER_ADDR_INDEX])) ||
-        (!isPosInt(argv[SERVER_PORT_INDEX], portNum))) {
+        (!isPosShort(argv[SERVER_PORT_INDEX], portNum))) {
         cout << "Usage: emClient clientName serverAddress serverPort" << endl;
         return 0;
     }
