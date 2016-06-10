@@ -7,6 +7,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include "Server.h"
+#include "Utils.cpp"
 
 #define MAX_HOST_NAME 40    //todo
 #define N_PEDING_CLIENTS 10
@@ -81,27 +82,6 @@ int establish(unsigned short portnum)
 }
 
 
-/*
- *
- */
-int readData(int s, char* buf, int n) {
-    int bCount;
-    int br;
-    bCount = 0, br = 0;
-
-    while (bCount < n) {
-        if ((br = read(s,buf,n-bCount)) > 0) {
-            bCount += br;
-            buf += br;
-        }
-
-        if (br < 1) {
-            return -1;
-        }
-    }
-
-    return bCount;
-}
 
 
 

@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include "Client.h"
+#include "Utils.cpp"
 
 
 #define CLIENT_VALID_NARGS 4
@@ -13,24 +14,6 @@
 
 
 using namespace std;
-
-
-
-int writeData(int s) {
-
-//    char* buf = (char*) malloc(2);
-//    buf[0] = 'a';
-//    buf[1] = '\0';
-//    cout << "buf in read: " << buf << endl;
-
-    string buf = "hello";
-
-    const char* c = buf.c_str();
-    cout << "strlen " << strlen(c) << endl;
-    write(s, c, strlen(c));
-
-}
-
 
 
 // can give sa as arg?
@@ -60,7 +43,7 @@ int main(int argc, char *argv[]) {
 
     writeData(s);
 
-    cout << "client finished!!!" << endl;
     close(s);
+    cout << "client finished!!!" << endl;
     return 0;
 }
