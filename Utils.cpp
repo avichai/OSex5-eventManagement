@@ -52,7 +52,9 @@ int writeData(int socket, string data) {
     cerr << "### write ###" << endl;
     cerr << "data: " << cData << endl;
     cerr << "length: " << strlen(cData) << endl;
+    cerr << "socket: " << socket << endl;
     if (write(socket, cData, strlen(cData)) < 0) {
+        cerr<<"failure" << endl;
         return FAILURE;
     }
     cerr << "### write finished ###" << endl;

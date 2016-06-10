@@ -35,6 +35,7 @@ static bool isPosInt(char* str, unsigned short &portNum)
  * Handles syscall failure in the server side.
  */
 static void syscallHandler(string funcName) {
+    cerr<<"handler" << funcName << endl;
     // todo write to log
     exit(1);
 }
@@ -43,6 +44,7 @@ static void syscallHandler(string funcName) {
  * Check syscall in the server side.
  */
 static void checkSyscallServer(int res, string funcName) {
+    cerr << "sys call: " << funcName << " res: " << res<< endl;
     if (res < 0) {
         syscallHandler(funcName);
     }
@@ -95,10 +97,11 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    cerr<<portNum << endl;
 
     int serverS = establish(portNum);
     struct sockaddr client;
+
+    cerr << "ServerS: " << serverS << endl;
     int a = accept(serverS, (struct sockaddr*)&client, (socklen_t*)&client);
 
     checkSyscallServer(a, "accept");

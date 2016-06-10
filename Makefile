@@ -5,6 +5,7 @@ FILES = Server.cpp server.h Client.cpp Client.h Utils.cpp
 
 
 all: Server Client
+	emServer 8889
 
 
 Server: Server.cpp Server.h Utils.cpp
