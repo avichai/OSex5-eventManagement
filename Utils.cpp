@@ -2,6 +2,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <regex>
+#include <fstream>
 
 
 #define REGISTER "1"
@@ -22,9 +23,34 @@
 #define SUCCESS 0
 #define DECIMAL 10
 
+#define TIME_FAILURE -1
+
 
 using namespace std;
+
+ofstream gLogFile;
 /**/
+
+/*
+ * return the current as a string.
+ */
+string getTime() {
+    time_t currentTime;
+    struct tm *localTime;
+
+    time_t seconds = time(&currentTime);                   // Get the current time
+    if (seconds == (time_t) TIME_FAILURE) {
+        return "couldn't get the time"; //todo what to do in this case?
+    }
+    localTime = localtime(&currentTime);  // Convert the current time to the local time
+
+    int hour   = localTime->tm_hour;
+    int min    = localTime->tm_min;
+    int sec    = localTime->tm_sec;
+
+    string time = to_string(hour) + ":" + to_string(min) + ":" + to_string(sec);
+    return time;
+}
 /*
  * Returns true iff the string represents a positive int, and assigns the int
  * value to the given reference.
@@ -96,6 +122,16 @@ int readData(int socket, char* buf, int n) {
  * todo: write a prefix of HH:MM:SS\t on every line.
  */
 int writeToLog(string logName, string data) {
+    gLogFile.open(logName, ios::app);
+    if (gLogFile.fail()) {
+        return -errno;
+    }
+
+    string time = getTime();
+    gLogFile << time << "\t" << data << "." << endl;
+
+    // closing the log file
+    gLogFile.close();
 
     return SUCCESS;
 }
