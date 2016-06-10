@@ -8,6 +8,10 @@
 #include <arpa/inet.h>
 #include "Server.h"
 #include "Utils.cpp"
+#include <unordered_set>
+#include <unordered_map>
+#include <thread_db.h>
+
 
 #define MAX_HOST_NAME 40    //todo
 #define N_PEDING_CLIENTS 10
@@ -15,21 +19,61 @@
 #define SERVER_PORT_INDEX 1
 
 
+static void syscallHandler(string funcName);
+static void checkSyscallServer(int res, string funcName);
+static void* listenToKeyboard(void*);
+static int establish(unsigned short portnum);
+static void* handleRequest(void* acceptSock);
+static void terminateServer();
+
+
 using namespace std;
 
+class Event;
 
-/*
- * Returns true iff the string represents a positive int, and assigns the int
- * value to the given reference.
- */
-static bool isPosInt(char* str, unsigned short &portNum)
-{
-    char* end  = 0;
-    int tmpCacheSize = strtol(str, &end, DECIMAL);
-    portNum = (unsigned short) tmpCacheSize;
+unordered_set <string>* gClientsSet;
+unordered_map <unsigned int, Event*>* gEventsMap;
+unordered_set <thread_t> gThreads;
 
-    return (*end == '\0') && (end != str) && (tmpCacheSize > 0);
-}
+pthread_mutex_t gClientsMutex;
+pthread_mutex_t gEventsMutex;
+pthread_mutex_t gThreadsMutex;
+
+
+bool gShouldExit;
+
+
+
+class Event {
+    unsigned int id;
+    string eventTitle;
+    string eventDate;
+    string eventDescription;
+
+public:
+    Event(unsigned int id, const string &eventTitle, const string &eventDate,
+          const string &eventDescription) : id(id), eventTitle(eventTitle),
+                                            eventDate(eventDate),
+                                            eventDescription(
+                                                    eventDescription) { }
+
+    unsigned int getId() const {
+        return id;
+    }
+
+    const string &getEventTitle() const {
+        return eventTitle;
+    }
+
+    const string &getEventDate() const {
+        return eventDate;
+    }
+
+    const string &getEventDescription() const {
+        return eventDescription;
+    }
+};
+
 
 /*
  * Handles syscall failure in the server side.
@@ -50,12 +94,39 @@ static void checkSyscallServer(int res, string funcName) {
     }
 }
 
+static void* listenToKeyboard(void*) {
+    string input, command;
+    size_t pos;
+
+    bool stillRunning = true;
+    while(stillRunning) {
+        getline(cin, input);
+        if (input == "EXIT") {
+            stillRunning = false;
+        }
+    }
+        terminateServer();
+}
+
+static void terminateServer() {
+    for (thread_t thread : gThreads) {
+        checkSyscallServer(pthread_join(thread, NULL), "pthread_join");
+    }
+    pthread_exit(NULL);
+}
+
+static void* handleRequest(void* acceptSock) {
+
+//    checkSyscallServer(pthread_mutex_lock(&gThreadsMutex), "pthread_mutex_lock");
+//    gThreads.erase(pthread_self());
+//    checkSyscallServer(pthread_mutex_unlock(&gThreadsMutex), "pthread_mutex_unlock");
+    pthread_exit(NULL);
+}
 
 /*
  * Establishes server socket.
  */
-int establish(unsigned short portnum)
-{
+static int establish(unsigned short portnum) {
     char myName[MAX_HOST_NAME+1];
     int serverS;
     struct sockaddr_in sa;
@@ -71,7 +142,6 @@ int establish(unsigned short portnum)
     sa.sin_family = hp->h_addrtype;
     memcpy(&sa.sin_addr,hp->h_addr,hp->h_length);
     sa.sin_port = htons(portnum);
-//    cout << "addr = " << inet_ntoa(sa.sin_addr) << endl;
 
     serverS = socket(AF_INET,SOCK_STREAM,0);
     checkSyscallServer(serverS, "socket");
@@ -97,20 +167,35 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
+    try {
+        gClientsSet = new unordered_set<string>();
+        gEventsMap = new unordered_map<unsigned int, Event*>();
+    } catch (bad_alloc) {
+        cerr << "bad alloc" << endl;
+        exit(EXIT_FAILURE);
+    }
 
     int serverS = establish(portNum);
+
+    gShouldExit = false;
+
+    int acceptSock;
     struct sockaddr client;
 
-    cerr << "ServerS: " << serverS << endl;
-    int a = accept(serverS, (struct sockaddr*)&client, (socklen_t*)&client);
+    thread_t keyboardThread;
+    pthread_create(&keyboardThread, NULL, listenToKeyboard, NULL);
 
-    checkSyscallServer(a, "accept");
+    // after shutdown we can assume no more connects will be made.
+    while (acceptSock = accept(serverS, (struct sockaddr *) &client,
+                               (socklen_t *) &client)) {
 
-    char buf[10];
-    readData(a, buf, 5);
+        checkSyscallServer(acceptSock, "accept");
+        pthread_t requestThread;
+        checkSyscallServer(pthread_create(&requestThread, NULL, handleRequest,
+                                          NULL), "pthrea_create");
 
-    cout << "buf = " << buf << endl;
-    cout << "server finished!!!" << endl;
+    }
+
 
     close(serverS);
     return 0;
