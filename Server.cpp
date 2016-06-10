@@ -26,10 +26,10 @@ using namespace std;
 static bool isPosInt(char* str, unsigned short &portNum)
 {
     char* end  = 0;
-    int tmpCacheSize = strtol(str, &end, DECIMAL);
-    portNum = (unsigned short) tmpCacheSize;
+    int tmpPortNum = strtol(str, &end, DECIMAL);
+    portNum = (unsigned short) tmpPortNum;
 
-    return (*end == '\0') && (end != str) && (tmpCacheSize > 0);
+    return (*end == '\0') && (end != str) && (tmpPortNum > 0);
 }
 
 /*
@@ -91,9 +91,14 @@ int establish(unsigned short portnum)
  */
 int main(int argc, char *argv[]) {
     unsigned short portNum;
-    if ((argc!=SERVER_VALID_NARGS)&&(isPosInt(argv[PORT_NUM_INDEX], portNum))) {
+
+
+    if ((argc!=SERVER_VALID_NARGS)||(!isPosInt(argv[PORT_NUM_INDEX], portNum))) {
         cout << "Usage: emServer portNum" << endl;
+        exit(EXIT_FAILURE);
     }
+
+    cerr<<portNum << endl;
 
     int serverS = establish(portNum);
     struct sockaddr client;
