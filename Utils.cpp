@@ -11,6 +11,9 @@
 #define GET_RSVPS_LIST "100"
 #define UNREGISTER "101"
 #define REQUSET_LEN 3
+#define REQUSET_SUCCESS "0"
+#define REQUSET_FAILURE "1"
+#define SPACE " "
 
 
 #define FAILURE -1
@@ -93,4 +96,15 @@ int readData(int socket, char* buf, int n) {
 int writeToLog(string logName, string data) {
 
     return SUCCESS;
+}
+
+/*
+ * Returns the next token in str (according to delim) and
+ * erases this token from str.
+ */
+string getNextToken(string &str, string delim) {
+    size_t pos = str.find(delim);
+    string token = str.substr(0, pos);
+    str.erase(0, pos + delim.length());
+    return token;
 }
