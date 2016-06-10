@@ -12,8 +12,7 @@
 #define MAX_HOST_NAME 40    //todo
 #define N_PEDING_CLIENTS 10
 #define SERVER_VALID_NARGS 2
-#define DECIMAL 10
-#define PORT_NUM_INDEX 1
+#define SERVER_PORT_INDEX 1
 
 
 using namespace std;
@@ -26,10 +25,10 @@ using namespace std;
 static bool isPosInt(char* str, unsigned short &portNum)
 {
     char* end  = 0;
-    int tmpPortNum = strtol(str, &end, DECIMAL);
-    portNum = (unsigned short) tmpPortNum;
+    int tmpCacheSize = strtol(str, &end, DECIMAL);
+    portNum = (unsigned short) tmpCacheSize;
 
-    return (*end == '\0') && (end != str) && (tmpPortNum > 0);
+    return (*end == '\0') && (end != str) && (tmpCacheSize > 0);
 }
 
 /*
@@ -91,11 +90,9 @@ int establish(unsigned short portnum)
  */
 int main(int argc, char *argv[]) {
     unsigned short portNum;
-
-
-    if ((argc!=SERVER_VALID_NARGS)||(!isPosInt(argv[PORT_NUM_INDEX], portNum))) {
+    if ((argc!=SERVER_VALID_NARGS) || (!isPosInt(argv[SERVER_PORT_INDEX], portNum))) {
         cout << "Usage: emServer portNum" << endl;
-        exit(EXIT_FAILURE);
+        return 0;
     }
 
     cerr<<portNum << endl;

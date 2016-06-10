@@ -1,3 +1,8 @@
+#include <iostream>
+#include <string.h>
+#include <unistd.h>
+#include <regex>
+
 
 #define REGISTER "000"
 #define CREATE "001"
@@ -7,14 +12,36 @@
 #define UNREGISTER "101"
 #define REQUSET_LEN 3
 
+
 #define FAILURE -1
 #define SUCCESS 0
+#define DECIMAL 10
 
-#include <iostream>
-#include <string.h>
-#include <unistd.h>
 
 using namespace std;
+
+/*
+ * Returns true iff the string represents a positive int, and assigns the int
+ * value to the given reference.
+ */
+bool isPosInt(char* str, unsigned short &portNum)
+{
+    char* end  = 0;
+    int tmpCacheSize = strtol(str, &end, DECIMAL);
+    portNum = (unsigned short) tmpCacheSize;
+
+    return (*end == '\0') && (end != str) && (tmpCacheSize > 0);
+}
+
+/*
+ * Returns true iff the given addr represents an address.
+ * todo: check if works
+ */
+bool isAddress(char* addr) {
+    return regex_match(addr, "((\d)+\\.)+(\d)+");
+}
+
+
 /*
  * Writes data to the given socket.
  * todo: maybe +1 to the strlen

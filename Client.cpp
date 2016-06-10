@@ -33,16 +33,24 @@ int callSocket(struct sockaddr_in sa) {
 
 
 int main(int argc, char *argv[]) {
-    struct sockaddr_in sa;
-    sa.sin_addr.s_addr = inet_addr("132.65.125.154");
-    sa.sin_family = AF_INET;
-    sa.sin_port = htons(8888);
+    unsigned short portNum;
+    if ((argc != CLIENT_VALID_NARGS) ||
+        (!isAddress(argv[SERVER_ADDR_INDEX])) ||
+        (!isPosInt(argv[SERVER_PORT_INDEX], portNum))) {
+        cout << "Usage: emClient clientName serverAddress serverPort" << endl;
+        return 0;
+    }
 
-    int s = callSocket(sa);
+    struct sockaddr_in sa;
+    sa.sin_addr.s_addr = inet_addr(argv[SERVER_ADDR_INDEX]);
+    sa.sin_family = AF_INET;
+    sa.sin_port = htons(portNum);
+
+    int s = callSocket(sa);//todo
 
     writeData(s, "blabla");
 
-    close(s);
+    close(s); //todo
     cout << "client finished!!!" << endl;
     return 0;
 }
