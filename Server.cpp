@@ -522,9 +522,9 @@ static int establish(unsigned short portnum) {
  * Server main function.
  */
 int main(int argc, char *argv[]) {
-    unsigned short portNum;
-    if ((argc!=SERVER_VALID_NARGS) || (!isPosShort(argv[SERVER_PORT_INDEX],
-                                                   portNum))) {
+    unsigned int portNum;
+    if ((argc!=SERVER_VALID_NARGS) || (!isPosInt(argv[SERVER_PORT_INDEX],
+                                                 portNum))) {
         cout << "Usage: emServer portNum" << endl;
         return 0;
     }
@@ -537,7 +537,7 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    int serverS = establish(portNum);
+    int serverS = establish((unsigned short) portNum);
 
     gIdCounter = 1;
 

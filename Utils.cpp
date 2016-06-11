@@ -12,11 +12,12 @@
 #define GET_RSVPS_LIST "5"
 #define UNREGISTER "6"
 
-
-#define REQUSET_LEN 3
 #define REQUSET_SUCCESS "0"
 #define REQUSET_FAILURE "1"
 #define SPACE " "
+#define NEWLINE "\n"
+#define COMMA ","
+#define COLON ":"
 
 
 #define FAILURE -1
@@ -28,13 +29,13 @@
 
 using namespace std;
 
-ofstream gLogFile;
-/**/
+//todo: server log should be protected by a mutex.
+//todo: in getTime should add a 0 in case one section is just one digit?
 
 /*
  * return the current as a string.
  */
-string getTime() {
+string getTime(bool withColons) {
     time_t currentTime;
     struct tm *localTime;
 
@@ -48,14 +49,25 @@ string getTime() {
     int min    = localTime->tm_min;
     int sec    = localTime->tm_sec;
 
-    string time = to_string(hour) + ":" + to_string(min) + ":" + to_string(sec);
+    string time = to_string(hour);
+    if (withColons) {
+        time += COLON;
+    }
+    time += to_string(min);
+    if (withColons) {
+        time += COLON;
+    }
+    time += to_string(sec);
     return time;
 }
+
+
+
 /*
  * Returns true iff the string represents a positive int, and assigns the int
  * value to the given reference.
  */
-bool isPosShort(char *str, unsigned short &portNum)
+bool isPosInt(char *str, unsigned int &portNum)
 {
     char* end  = 0;
     int tmpCacheSize = strtol(str, &end, DECIMAL);
@@ -69,7 +81,7 @@ bool isPosShort(char *str, unsigned short &portNum)
  * todo: check if works
  */
 bool isAddress(char* addr) {
-    return regex_match(addr, "((\d)+\\.)+(\d)+");
+    return regex_match(addr, regex("((\\d)+\\.)+(\\d)+"));
 }
 
 
@@ -92,7 +104,9 @@ int writeData(int socket, string data) {
     return SUCCESS;
 }
 
-
+//todo: change ret val of readData to string (the function would first read the num of chars
+//todo: to read, malloc a char* buf of that size and then returns a string representaion
+//todo: of that char (remember to free the buf before return).
 /*
  * Reads data from the given socket.
  * todo: get n within the function rather then as arg
@@ -122,13 +136,15 @@ int readData(int socket, char* buf, int n) {
  * todo: write a prefix of HH:MM:SS\t on every line.
  */
 int writeToLog(string logName, string data) {
+    ofstream gLogFile;
+
     gLogFile.open(logName, ios::app);
     if (gLogFile.fail()) {
-        return -errno;
+        return -errno; // todo: how handlethis case
     }
 
-    string time = getTime();
-    gLogFile << time << "\t" << data << "." << endl;
+    string time = getTime(true);
+    gLogFile << time << "\t" << data; //todo: without -> << "." << endl;
 
     // closing the log file
     gLogFile.close();
@@ -140,9 +156,19 @@ int writeToLog(string logName, string data) {
  * Returns the next token in str (according to delim) and
  * erases this token from str.
  */
-string getNextToken(string &str, string delim) {
+string popNextToken(string &str, string delim) {
     size_t pos = str.find(delim);
+    if (pos == string::npos) {
+        pos = str.length();
+    }
     string token = str.substr(0, pos);
     str.erase(0, pos + delim.length());
     return token;
+}
+
+/*
+ * Peeks token (defined by delim) in str.
+ */
+string peekFirstToken(string str, string delim) {
+    return str.substr(0, str.find(delim));
 }

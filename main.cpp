@@ -1,21 +1,17 @@
 #include <iostream>
+#include <algorithm>
+#include <regex>
+
+#define COLON ":"
 
 using namespace std;
 
+bool isAddress(char* addr) {
+    return regex_match(addr, regex("((\\d)+\\.)+(\\d)+"));
+}
+
 int main() {
-
-    string input, command;
-    size_t pos = 0;
-    bool stillRunning = true;
-    while (stillRunning) {
-        getline(cin, input);
-        pos = input.find(" ");
-        command = input.substr(0,pos);
-        cout << "!!! " << command << " !!!" << endl;
-
-        stillRunning = false;
-    }
-
-
+    char s[] = "23.4.2.-2";
+    cout << isAddress(s) << endl;
     return 0;
 }
