@@ -52,10 +52,13 @@ set<string> eventsSet;
  * Validates the create number of arguments.
  */
 static bool validCreateNArgs(string data) {
-    for (int i = 0; i < CREATE_NARGS; ++i) {
+    for (int i = 0; i < CREATE_NARGS - 1; ++i) {
         if (popNextToken(data, SPACE) == "") {
             return false;
         }
+    }
+    if (data == "") {
+        return false;
     }
     return true;
 }
@@ -100,6 +103,8 @@ static string getSortedEvents(string events) {
     for (auto it = vec.begin(); it != vec.end(); ++it) {
         sortedEvents += *it + ".\n";
     }
+    sortedEvents.pop_back(); // .
+    sortedEvents.pop_back(); // \n
     return sortedEvents;
 }
 
@@ -151,7 +156,7 @@ static void writeErrToClientLog(ERROR_TYPE errType, string s1, string s2) {
             errMessage += "first command must be REGISTER.";
             break;
         case ALREADY_REG:
-            errMessage += "the client" + clientName + " was already registered";
+            errMessage += "the client " + clientName + " was already registered";
             break;
         case ALREADY_RSVP:
             errMessage += "RSVP to event id " + s1 + " was already sent";
