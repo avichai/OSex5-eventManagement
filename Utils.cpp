@@ -74,7 +74,8 @@ void writeToLog(string logName, string data) {
         return;
     }
 
-    gLogFile << getTime(true) << "\t" << data;
+    gLogFile << getTime(true) << "\t" << data << ".\n";
+    cerr << getTime(true) << "\t" << data << ".\n"; //todo
     gLogFile.close();
 }
 
@@ -117,16 +118,17 @@ static string padDataSize(string dataSize) {
  * todo: should write in loop
  */
 void writeData(int socket, string data, string logName) {
-    int dataSize = (int) strlen(data.c_str()) + 1;  // for the null char.
+    int dataSize = (int) data.size() + 1;  // for the null char.
 
-    data = padDataSize(to_string(dataSize)) + data;
-    const char* cData = data.c_str();
+    string proData = padDataSize(to_string(dataSize)) + data;
+    dataSize = (int) proData.size() + 1;  // for the null char.
+    const char* cProData = proData.c_str();
 
     int charsWritten = 0, tmpChars;
     while (charsWritten < dataSize) {
-        if ((tmpChars = (int) write(socket, cData, (size_t) dataSize - charsWritten)) > 0) {
+        if ((tmpChars = (int) write(socket, cProData, (size_t) dataSize - charsWritten)) > 0) {
             charsWritten += tmpChars;
-            cData += tmpChars;
+            cProData += tmpChars;
         }
 
         if (tmpChars < 0) {
@@ -159,7 +161,9 @@ string readData(int socket, string logName) {
     char messageSizeStr[MAX_MESSAGE];
     readHelper(socket,messageSizeStr,MAX_MESSAGE,logName);
 
+
     int messageSize = stoi(messageSizeStr);
+
     char* message = (char*) malloc(messageSize);
     readHelper(socket,message,messageSize,logName);
     string messageStr = string(message);

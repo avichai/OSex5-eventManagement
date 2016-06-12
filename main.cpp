@@ -22,8 +22,13 @@ static string padDataSize(string dataSize) {
 
 int main() {
 
-    string s = "bb324a";
+    char c[6];
+    for (int i =0; i < 3; ++i) {
+        c[i] = '1';
+    }
 
-    cout << stoi(s) << endl;
+
+    cout << stoi(c) << endl;
+
     return 0;
 }

@@ -1,5 +1,6 @@
 CC = g++
-CFLAGS = -pthread -Wall -std=c++11 -g
+CFLAGS = -Wall -std=c++11
+SERVER_FLAGS = -pthread
 EXTRA_FILES = Makefile README
 FILES = Server.cpp server.h Client.cpp Client.h Utils.cpp
 
@@ -8,15 +9,21 @@ all: Server Client
 
 
 Server: Server.cpp Server.h Utils.h
-	${CC} ${CFLAGS} Server.cpp Utils.cpp -o emServer
+	${CC} ${CFLAGS} ${SERVER_FLAGS} Server.cpp Utils.cpp -o emServer
 
 Client: Client.cpp Client.h Utils.h
 	${CC} ${CFLAGS} Client.cpp Utils.cpp -o emClient
 
+S:
+	emServer
+
+C:
+	emClient yossi
+
 tar:
 	tar cvf ex5.tar ${FILES} ${EXTRA_FILES}
 
-# remove
+# remove 132.65.125.69
 main: main1
 	main
 
