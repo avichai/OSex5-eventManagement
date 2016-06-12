@@ -216,11 +216,11 @@ static void clientRun(string clientName, struct sockaddr_in serverAddr) {
                 writeErrToClientLog(FIRST_CMD_REG,"","");
                 continue;
             }
-            if (validCreateNArgs(input)) {
+            if (!validCreateNArgs(input)) {
                 writeErrToClientLog(MISSING_ARG,CREATE_CMD,"");
                 continue;
             }
-            if (validCreateArgs(input,invalidArg)) {//todo: how to check args?
+            if (!validCreateArgs(input,invalidArg)) {//todo: how to check args?
                 writeErrToClientLog(INVALID_ARG,invalidArg,CREATE_CMD);
                 continue;
             }
@@ -311,17 +311,11 @@ static void handleResponse(string response, string cmd, string input, bool &stil
         if (requestSucceed) {
             writeToClientLog("Event id " + response + " was created successfully");
         }
-        else {
-            writeErrToClientLog(FAILED,"create the event: " + response,"");
-        }
     }
     else if (cmd == GET_TOP_5) {
         if (requestSucceed) {
             string sortedEvents = getSortedEvents(response);
             writeToClientLog("Top 5 newest events are:\n" + sortedEvents);  //todo: maybe with ".\n"?
-        }
-        else {
-            writeErrToClientLog(FAILED,"receive top 5 newest events " + response,"");
         }
     }
     else if (cmd == SEND_RSVP) {
@@ -330,7 +324,7 @@ static void handleResponse(string response, string cmd, string input, bool &stil
             writeToClientLog("RSVP to event id " + input + " was received successfully");
         }
         else {
-            writeErrToClientLog(FAILED,"send RSVP to event id " + input + ":" + response,"");
+            writeErrToClientLog(FAILED,"send RSVP to event id " + input + ": the event doesn't exists" ,"");
         }
     }
     else if (cmd == GET_RSVPS_LIST) {
@@ -339,7 +333,7 @@ static void handleResponse(string response, string cmd, string input, bool &stil
             writeToClientLog("The RSVP's list for event id " + input + " is: " + sortedRSVPs);
         }
         else {
-            // todo: check if can fail by the server
+            writeErrToClientLog(FAILED,"get RSVP's list to event id " + input + ": the event doesn't exists" ,"");
         }
     }
     else if (cmd == UNREGISTER) {
@@ -347,9 +341,6 @@ static void handleResponse(string response, string cmd, string input, bool &stil
             writeToClientLog("Client " + clientName + " was unregistered successfully");
             stillRunning = false;
             exit(0);
-        }
-        else {
-            // todo: check if can fail by the server
         }
     }
     else {

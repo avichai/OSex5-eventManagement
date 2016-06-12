@@ -120,9 +120,9 @@ static string padDataSize(string dataSize) {
 void writeData(int socket, string data, string logName) {
     int dataSize = (int) data.size() + 1;  // for the null char.
 
-    string prolData = padDataSize(to_string(dataSize)) + data;
-    dataSize = (int) prolData.size() + 1;  // for the null char.
-    const char* cProData = prolData.c_str();
+    string proData = padDataSize(to_string(dataSize)) + data;
+    dataSize = (int) proData.size() + 1;  // for the null char.
+    const char* cProData = proData.c_str();
 
     int charsWritten = 0, tmpChars;
     while (charsWritten < dataSize) {
@@ -135,7 +135,7 @@ void writeData(int socket, string data, string logName) {
             syscallHandler(logName,"write");
         }
     }
-    cerr << "cProData: " << string(cProData) << endl; //todo
+    cerr << "write: cProData: " << proData << endl; //todo
 }
 
 /*
@@ -169,8 +169,8 @@ string readData(int socket, string logName) {
     readHelper(socket,message,messageSize,logName);
     string messageStr = string(message);
     free(message);
-    cerr << "message size: " << messageSize << endl; // todo
-    cerr << "message: " << messageStr << endl; //todo
+    cerr << "read: message size: " << messageSize << endl; // todo
+    cerr << "read: message: " << messageStr << endl; //todo
     return messageStr;
 }
 
