@@ -13,18 +13,16 @@
 #define UNREGISTER "6"
 
 #define REQUSET_SUCCESS "0"
-#define REQUSET_FAILURE "1"
+#define REQUSET_FAILURE "1  "
 #define SPACE " "
 #define NEWLINE "\n"
 #define COMMA ","
-#define COLON ":"
+#define TAB "\t"
 
 
 #define FAILURE -1
 #define SUCCESS 0
 #define DECIMAL 10
-
-#define TIME_FAILURE -1
 
 
 using namespace std;
@@ -38,27 +36,14 @@ using namespace std;
 string getTime(bool withColons) {
     time_t currentTime;
     struct tm *localTime;
+    char str[9];
 
-    time_t seconds = time(&currentTime);                   // Get the current time
-    if (seconds == (time_t) TIME_FAILURE) {
-        return "couldn't get the time"; //todo what to do in this case?
-    }
-    localTime = localtime(&currentTime);  // Convert the current time to the local time
+    time(&currentTime);
+    localTime = localtime(&currentTime);
 
-    int hour   = localTime->tm_hour;
-    int min    = localTime->tm_min;
-    int sec    = localTime->tm_sec;
-
-    string time = to_string(hour);
-    if (withColons) {
-        time += COLON;
-    }
-    time += to_string(min);
-    if (withColons) {
-        time += COLON;
-    }
-    time += to_string(sec);
-    return time;
+    string format = withColons ? "%H:%M:%S" : "%H%M%S";
+    strftime(str, 9, format.c_str(), localTime);
+    return string(str);
 }
 
 
@@ -133,23 +118,26 @@ int readData(int socket, char* buf, int n) {
 
 /*
  * Writes data to the given log.
- * todo: write a prefix of HH:MM:SS\t on every line.
  */
-int writeToLog(string logName, string data) {
+void writeToLog(string logName, string data) {
     ofstream gLogFile;
 
     gLogFile.open(logName, ios::app);
     if (gLogFile.fail()) {
-        return -errno; // todo: how handlethis case
+        return;
     }
 
-    string time = getTime(true);
-    gLogFile << time << "\t" << data; //todo: without -> << "." << endl;
-
-    // closing the log file
+    gLogFile << getTime(true) + TAB << data;
     gLogFile.close();
+}
 
-    return SUCCESS;
+/*
+ * Writes a syscall failure to the log.
+ */
+void checkSyscall(int result, string logName, string syscall) {
+    if (result < 0) {
+        writeToLog(logName, syscall + TAB + to_string(errno) + "." + NEWLINE);
+    }
 }
 
 /*

@@ -181,15 +181,15 @@ static void writeToClientLog(string message) {
 static int callServer(struct sockaddr_in sa) {
     int s;
 
-    s = socket(AF_INET, SOCK_STREAM, 0);// todo
+    s = socket(AF_INET, SOCK_STREAM, 0);
+    checkSyscall(s, logName, "socket");
 
-    int n = connect(s, (struct sockaddr*)&sa, sizeof(sa)); //todo
-
-    if (n < 0) {
-        cout << "connect" << endl;
+    int c = connect(s, (struct sockaddr*)&sa, sizeof(sa));
+    if (c < 0) {
+        writeSyscallFailureToLog(logName, "connect", errno);
     }
 
-    return s;
+    return socket;
 }
 
 /*

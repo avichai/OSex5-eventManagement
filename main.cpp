@@ -6,12 +6,21 @@
 
 using namespace std;
 
-bool isAddress(char* addr) {
-    return regex_match(addr, regex("((\\d)+\\.)+(\\d)+"));
+string getTime(bool withColons) {
+    time_t currentTime;
+    struct tm *localTime;
+    char str[9];
+
+    time(&currentTime);
+    localTime = localtime(&currentTime);
+
+    string format = withColons ? "%H:%M:%S" : "%H%M%S";
+    strftime(str, 9, format.c_str(), localTime);
+    return string(str);
 }
 
 int main() {
-    char s[] = "23.4.2.-2";
-    cout << isAddress(s) << endl;
+    cout << "with: " <<getTime(0) << endl;
+    cout << "without: " <<getTime(1) << endl;
     return 0;
 }

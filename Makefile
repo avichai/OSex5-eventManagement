@@ -17,6 +17,13 @@ Client: Client.cpp Client.h Utils.cpp
 tar:
 	tar cvf ex5.tar ${FILES} ${EXTRA_FILES}
 
+# remove
+main: main1
+	main
+
+main1:
+	${CC} ${CFLAGS} main.cpp -o main
+
 clean:
 	rm emServer emClient *.o ex5.tar
 
