@@ -11,6 +11,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <thread_db.h>
+#include <assert.h>
 
 
 #define MAX_HOST_NAME 40    //todo
@@ -113,14 +114,17 @@ void split(const string &txt, vector<std::string> &strs, char ch) {
 
     // Decompose statement
     while( pos != std::string::npos) {
-        strs.push_back(txt.substr(initialPos, pos - initialPos + 1 ) );
+        strs.push_back(txt.substr(initialPos, pos - initialPos ) );
         initialPos = pos + 1;
 
         pos = txt.find(ch, initialPos);
     }
 
+    if (txt.substr(initialPos, min(pos, txt.size()) - initialPos) == "") {
+        return;
+    }
     // Add the last one
-    strs.push_back(txt.substr(initialPos, min(pos, txt.size()) - initialPos + 1));
+    strs.push_back(txt.substr(initialPos, min(pos, txt.size()) - initialPos));
 }
 
 
@@ -414,10 +418,16 @@ static void* handleRequest(void* acceptSock) {
 
     string request = readData(*((int*)acceptSock), LOG_FILENAME);
 
+
     vector<string> argFromClient;
+
+
     split(request, argFromClient, ' ');
 
+
     const char* binaryCommandStr = argFromClient[COMMAND_IN_VECTOR_INDEX].c_str();
+
+
 
     if (strcasecmp(binaryCommandStr, REGISTER) == 0) {
         handleRegister(*((int*)acceptSock), argFromClient);
@@ -434,10 +444,12 @@ static void* handleRequest(void* acceptSock) {
     else if (strcasecmp(binaryCommandStr, GET_RSVPS_LIST) == 0) {
         handleGetRSVPList(*((int*)acceptSock), argFromClient);
     }
-    else {  //case UNREGISTER
+    else if (strcasecmp(binaryCommandStr, UNREGISTER) == 0) {
         handleUnregister(*((int*)acceptSock), argFromClient);
     }
-
+    else {
+        assert(0);//todo
+    }
 
     checkSyscall(LOG_FILENAME, pthread_mutex_lock(&gThreadsMutex), "pthread_mutex_lock");
     gThreads.erase(pthread_self());
@@ -467,6 +479,8 @@ static int establish(unsigned short portnum) {
     memcpy(&sa.sin_addr,hp->h_addr,hp->h_length);
     sa.sin_port = htons(portnum);
 
+    cerr << "addr: " << inet_ntoa(sa.sin_addr) << endl;//todo
+
     serverS = socket(AF_INET,SOCK_STREAM,0);
     checkSyscall(LOG_FILENAME, serverS, "socket");
 
@@ -491,8 +505,7 @@ int main(int argc, char *argv[]) {
 //        gClientsSet = new unordered_set<string>();
         gEventsMap = new unordered_map<unsigned int, Event*>();
     } catch (bad_alloc) {
-        cerr << "bad alloc" << endl;
-        exit(EXIT_FAILURE);
+        syscallHandler(LOG_FILENAME, "new");
     }
 
     int serverS = establish((unsigned short) portNum);
@@ -503,15 +516,16 @@ int main(int argc, char *argv[]) {
     struct sockaddr client;
 
     thread_t keyboardThread;
-    pthread_create(&keyboardThread, NULL, listenToKeyboard, &serverS);
+    checkSyscall(LOG_FILENAME,pthread_create(&keyboardThread, NULL, listenToKeyboard, &serverS),"pthread_create");
 
     // after shutdown we can assume no more connects will be made.
     while ((acceptSock = accept(serverS, (struct sockaddr *) &client,
                                (socklen_t *) &client))) {
 
+
         checkSyscall(LOG_FILENAME, acceptSock, "accept");
         pthread_t requestThread;
-        checkSyscall(LOG_FILENAME, pthread_create(&requestThread, NULL, handleRequest, &acceptSock), "pthrea_create");
+        checkSyscall(LOG_FILENAME, pthread_create(&requestThread, NULL, handleRequest, &acceptSock), "pthread_create");
         checkSyscall(LOG_FILENAME, pthread_mutex_lock(&gThreadsMutex), "pthread_mutex_lock");
         gThreads.insert(requestThread);
         checkSyscall(LOG_FILENAME, pthread_mutex_unlock(&gThreadsMutex), "pthread_mutex_unlock");

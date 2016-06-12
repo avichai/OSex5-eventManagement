@@ -139,31 +139,30 @@ static void writeErrToClientLog(ERROR_TYPE errType, string s1, string s2) {
     string errMessage = "ERROR: ";
     switch (errType) {
         case ILLEGAL_CMD:
-            errMessage += "illegal command.";
+            errMessage += "illegal command";
             break;
         case MISSING_ARG:
-            errMessage += "missing argument in command " + s1 + ".";
+            errMessage += "missing argument in command " + s1;
             break;
         case INVALID_ARG:
-            errMessage += "invalid argument " + s1 + " in command " + s2 + ".";
+            errMessage += "invalid argument " + s1 + " in command " + s2;
             break;
         case FIRST_CMD_REG:
             errMessage += "first command must be REGISTER.";
             break;
         case ALREADY_REG:
-            errMessage += "the client" + clientName + " was already registered.";
+            errMessage += "the client" + clientName + " was already registered";
             break;
         case ALREADY_RSVP:
-            errMessage += "RSVP to event id " + s1 + " was already sent.";
+            errMessage += "RSVP to event id " + s1 + " was already sent";
             break;
         case INVALID_CMD:
-            errMessage += "Invalid command.";
+            errMessage += "Invalid command";
             break;
         case FAILED:
             errMessage += "failed to " + s1;
             break;
     }
-    errMessage += "\n";
     writeToLog(logName, errMessage);
 }
 
@@ -178,11 +177,11 @@ static void writeToClientLog(string message) {
  * Calls the server.
  */
 static int callServer(struct sockaddr_in sa) {
+
     int s;
 
     s = socket(AF_INET, SOCK_STREAM, 0);
     checkSyscall(logName, s, "socket");
-
 
     int c = connect(s, (struct sockaddr*)&sa, sizeof(sa));
     checkSyscall(logName, c, "connect");
@@ -300,7 +299,7 @@ static void handleResponse(string response, string cmd, string input, bool &stil
     if (cmd == REGISTER) {
         if (requestSucceed) {
             isRegistered = true;
-            writeToClientLog("Client " + clientName + " was registered successfully.\n");
+            writeToClientLog("Client " + clientName + " was registered successfully");
         }
         else {
             writeErrToClientLog(ALREADY_REG,"","");
@@ -310,7 +309,7 @@ static void handleResponse(string response, string cmd, string input, bool &stil
     }
     else if (cmd == CREATE) {
         if (requestSucceed) {
-            writeToClientLog("Event id " + response + " was created successfully.\n");
+            writeToClientLog("Event id " + response + " was created successfully");
         }
         else {
             writeErrToClientLog(FAILED,"create the event: " + response,"");
@@ -328,7 +327,7 @@ static void handleResponse(string response, string cmd, string input, bool &stil
     else if (cmd == SEND_RSVP) {
         if (requestSucceed) {
             eventsSet.insert(input);
-            writeToClientLog("RSVP to event id " + input + " was received successfully.\n");
+            writeToClientLog("RSVP to event id " + input + " was received successfully");
         }
         else {
             writeErrToClientLog(FAILED,"send RSVP to event id " + input + ":" + response,"");
@@ -337,7 +336,7 @@ static void handleResponse(string response, string cmd, string input, bool &stil
     else if (cmd == GET_RSVPS_LIST) {
         if (requestSucceed) {
             string sortedRSVPs = getSortedRSVPs(response);  //todo (without\n at the end)
-            writeToClientLog("The RSVP's list for event id " + input + " is: " + sortedRSVPs + ".\n");
+            writeToClientLog("The RSVP's list for event id " + input + " is: " + sortedRSVPs);
         }
         else {
             // todo: check if can fail by the server
@@ -345,7 +344,7 @@ static void handleResponse(string response, string cmd, string input, bool &stil
     }
     else if (cmd == UNREGISTER) {
         if (requestSucceed) {
-            writeToClientLog("Client " + clientName + " was unregistered successfully.\n");
+            writeToClientLog("Client " + clientName + " was unregistered successfully");
             stillRunning = false;
             exit(0);
         }
@@ -353,8 +352,9 @@ static void handleResponse(string response, string cmd, string input, bool &stil
             // todo: check if can fail by the server
         }
     }
-
-    assert(0); //todo: remove
+    else {
+        assert(0); //todo: remove
+    }
 }
 
 
