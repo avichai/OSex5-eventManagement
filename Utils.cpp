@@ -140,6 +140,24 @@ void checkSyscall(int result, string logName, string syscall) {
     }
 }
 
+
+/*
+ * Handles syscall failure in the server side.
+ */
+static void syscallHandler(string logName, string funcName) {
+    writeToLog(logName, "ERROR\t" + funcName + "\t" + to_string(errno));
+    exit(EXIT_FAILURE);
+}
+
+/*
+ * Check syscall in the server side.
+ */
+static void checkSyscall(string logName, int res, string funcName) {
+    if (res < 0) {
+        syscallHandler(logName, funcName);
+    }
+}
+
 /*
  * Returns the next token in str (according to delim) and
  * erases this token from str.
@@ -153,6 +171,7 @@ string popNextToken(string &str, string delim) {
     str.erase(0, pos + delim.length());
     return token;
 }
+
 
 /*
  * Peeks token (defined by delim) in str.
