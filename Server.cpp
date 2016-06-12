@@ -7,7 +7,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include "Server.h"
-#include "Utils.cpp"
+#include "Utils.h"
 #include <unordered_set>
 #include <unordered_map>
 #include <thread_db.h>
@@ -17,29 +17,23 @@
 #define N_PEDING_CLIENTS 10
 #define SERVER_VALID_NARGS 2
 #define SERVER_PORT_INDEX 1
-#define INITIAL_MESS_SIZE 5
 #define EXIT_FROM_KEYBOARD "EXIT"
 #define COMMAND_IN_VECTOR_INDEX 0
 #define CLIENT_NAME_IN_VECTOR_INDEX 1
 
 #define EVENT_TITLE_IN_VECTOR_INDEX 2
 #define EVENT_DATE_IN_VECTOR_INDEX 3
-#define STRAT_DESC_IN_VECTOR_INDEX 4
+#define START_DESC_IN_VECTOR_INDEX 4
 
 #define EVENT_ID_IN_VECTOR_INDEX 2
 
-#define LOG_FILENAME "logFileName"
-#define SUCCESS_STR "0"
-#define FAILURE_STR "1"
+#define LOG_FILENAME "emServer.log"
 
 
-
-static void syscallHandler(string funcName);
-static void checkSyscallServer(int res, string funcName);
 static void* listenToKeyboard(void*);
 static int establish(unsigned short portnum);
 static void* handleRequest(void* acceptSock);
-static void terminateServer();
+static void terminateServer(int* serverS);
 
 
 using namespace std;
@@ -105,17 +99,16 @@ public:
  * write the data to the log using utils function.
  */
 static void writeToLog(string data) {
-    checkSyscallServer(pthread_mutex_lock(&gLogFileMutex), "pthread_mutex_lock");
+    checkSyscall(LOG_FILENAME, pthread_mutex_lock(&gLogFileMutex), "pthread_mutex_lock");
     writeToLog(LOG_FILENAME, data);
-    checkSyscallServer(pthread_mutex_unlock(&gLogFileMutex), "pthread_mutex_unlock");
+    checkSyscall(LOG_FILENAME, pthread_mutex_unlock(&gLogFileMutex), "pthread_mutex_unlock");
 }
 
 /*
  * split lines by char.
  */
-unsigned int split(const string &txt, vector<std::string> &strs, char ch) {
-    unsigned int pos = txt.find(ch);
-    unsigned int initialPos = 0;
+void split(const string &txt, vector<std::string> &strs, char ch) {
+    size_t pos = txt.find(ch), initialPos = 0;
     strs.clear();
 
     // Decompose statement
@@ -128,20 +121,8 @@ unsigned int split(const string &txt, vector<std::string> &strs, char ch) {
 
     // Add the last one
     strs.push_back(txt.substr(initialPos, min(pos, txt.size()) - initialPos + 1));
-
-    return strs.size();
 }
 
-/**/
-/*
- * Returns true iff the string represents a positive int, and assigns the int
- * value to the given reference.
- */
-static bool getPosInt(const char* str, unsigned int &index) {
-    char* end  = 0;
-    int tmpIndex = strtol(str, &end, DECIMAL);
-    index = (unsigned short) tmpIndex;
-}
 
 ///*
 // * Handles syscall failure in the server side.
@@ -154,7 +135,7 @@ static bool getPosInt(const char* str, unsigned int &index) {
 ///*
 // * Check syscall in the server side.
 // */
-//static void checkSyscallServer(int res, string funcName) {
+//static void checkSyscall(int res, string funcName) {
 //    if (res < 0) {
 //        syscallHandler(funcName);
 //    }
@@ -173,7 +154,8 @@ static void* listenToKeyboard(void* serverS) {
             stillRunning = false;
         }
     }
-        terminateServer((int*) serverS);
+    terminateServer((int*) serverS);
+    return NULL;
 }
 
 /*
@@ -181,7 +163,7 @@ static void* listenToKeyboard(void* serverS) {
  */
 static void terminateServer(int* serverS) {
     for (thread_t thread : gThreads) {
-        checkSyscallServer(pthread_join(thread, NULL), "pthread_join");
+        checkSyscall(LOG_FILENAME, pthread_join(thread, NULL), "pthread_join");
     }
     close(*serverS);
     exit(EXIT_SUCCESS);
@@ -193,10 +175,7 @@ static void terminateServer(int* serverS) {
  * and than the message itself.
  */
 static void sendToClient(int accSocket, string mess) {
-    unsigned int messSize = mess.length();
-    writeData(accSocket, string(to_string(messSize)));
-    writeData(accSocket, mess);
-
+    writeData(accSocket,mess,LOG_FILENAME);
 }
 
 /*
@@ -204,13 +183,13 @@ static void sendToClient(int accSocket, string mess) {
  */
 //static int checkIfConnectionWasMade(int acceptSocket, vector<string> argFromClient, string& clientName) {
 //
-//    checkSyscallServer(pthread_mutex_lock(&gClientsMutex), "pthread_mutex_lock");
+//    checkSyscall(pthread_mutex_lock(&gClientsMutex), "pthread_mutex_lock");
 //    if (gClientsSet->find(argFromClient[CLIENT_NAME_IN_VECTOR_INDEX]) == gClientsSet->end()) {
-//    checkSyscallServer(pthread_mutex_unlock(&gClientsMutex), "pthread_mutex_unlock");
+//    checkSyscall(pthread_mutex_unlock(&gClientsMutex), "pthread_mutex_unlock");
 //
 //        clientName = argFromClient[CLIENT_NAME_IN_VECTOR_INDEX];
 //        writeToLog("ERROR:" + clientName + "\tis already exists");
-//        sendToClient(acceptSocket, FAILURE_STR);
+//        sendToClient(acceptSocket, );
 //        return FAILURE;
 //    }
 //    return SUCCESS;
@@ -224,7 +203,7 @@ static void sendToClient(int accSocket, string mess) {
 static void handleNotFoundID(int acceptSocket, int curId) {
     writeToLog("event id: " + to_string(curId) +
             " is not on the server events id's list");
-    string mess = FAILURE_STR;
+    string mess = REQUEST_FAILURE;
     sendToClient(acceptSocket, mess);
 }
 
@@ -236,7 +215,7 @@ static void handleNotFoundID(int acceptSocket, int curId) {
 static void handleRegister(int acceptSocket, vector<string> argFromClient) {
     string clientName = argFromClient[CLIENT_NAME_IN_VECTOR_INDEX];
     writeToLog(clientName + "\twas registered successfully");
-    string mess = SUCCESS_STR;
+    string mess = REQUEST_SUCCESS;
     sendToClient(acceptSocket, mess);
 }
 
@@ -246,33 +225,33 @@ static void handleRegister(int acceptSocket, vector<string> argFromClient) {
 static void handleCreate(int acceptSocket, vector<string> argFromClient) {
     string clientName = argFromClient[CLIENT_NAME_IN_VECTOR_INDEX];
 
-    checkSyscallServer(pthread_mutex_lock(&gIdCounterMutex),
+    checkSyscall(LOG_FILENAME, pthread_mutex_lock(&gIdCounterMutex),
                        "pthread_mutex_lock");
     unsigned int eventId = gIdCounter++;
-    checkSyscallServer(pthread_mutex_unlock(&gIdCounterMutex),
+    checkSyscall(LOG_FILENAME, pthread_mutex_unlock(&gIdCounterMutex),
                        "pthread_mutex_unlock");
 
     string eventTitle = argFromClient[EVENT_TITLE_IN_VECTOR_INDEX];
     string eventDate = argFromClient[EVENT_DATE_IN_VECTOR_INDEX];
     string eventDescription = "";
 
-    for (unsigned int i = STRAT_DESC_IN_VECTOR_INDEX;
+    for (unsigned int i = START_DESC_IN_VECTOR_INDEX;
          i < argFromClient.size(); ++i) {
         eventDescription += argFromClient[i];
     }
 
-    checkSyscallServer(pthread_mutex_lock(&gEventsMutex),
+    checkSyscall(LOG_FILENAME, pthread_mutex_lock(&gEventsMutex),
                        "pthread_mutex_lock");
     gEventsMap->insert(pair<int, Event *>(eventId,
                                           new Event(eventId, eventTitle,
                                                     eventDate,
                                                     eventDescription, "")));
-    checkSyscallServer(pthread_mutex_unlock(&gEventsMutex),
+    checkSyscall(LOG_FILENAME, pthread_mutex_unlock(&gEventsMutex),
                        "pthread_mutex_unlock");
 
     writeToLog(clientName + "\tevent id " + to_string(eventId)
                              + "was assigned to the event with title " + eventTitle);
-    string mess = SUCCESS_STR;
+    string mess = REQUEST_SUCCESS;
     mess += " " + to_string(eventId);
     sendToClient(acceptSocket, mess);
 }
@@ -285,23 +264,23 @@ static void handleGetTop5(int acceptSocket, vector<string> argFromClient) {
 
     //todo write to log success
 
-    checkSyscallServer(pthread_mutex_lock(&gIdCounterMutex),
+    checkSyscall(LOG_FILENAME, pthread_mutex_lock(&gIdCounterMutex),
                        "pthread_mutex_lock");
     unsigned int curEventId = gIdCounter - 1;
-    checkSyscallServer(pthread_mutex_unlock(&gIdCounterMutex),
+    checkSyscall(LOG_FILENAME, pthread_mutex_unlock(&gIdCounterMutex),
                        "pthread_mutex_unlock");
 
     string top5Events = "";
-    checkSyscallServer(pthread_mutex_lock(&gEventsMutex),
+    checkSyscall(LOG_FILENAME, pthread_mutex_lock(&gEventsMutex),
                        "pthread_mutex_lock");
-    int eventAmount = min(5, gEventsMap->size());
-    checkSyscallServer(pthread_mutex_unlock(&gEventsMutex),
+    int eventAmount = min(5, (int) gEventsMap->size());
+    checkSyscall(LOG_FILENAME, pthread_mutex_unlock(&gEventsMutex),
                        "pthread_mutex_unlock");
     for (int i = 0; i < eventAmount; ++i) {
-        checkSyscallServer(pthread_mutex_lock(&gEventsMutex),
+        checkSyscall(LOG_FILENAME, pthread_mutex_lock(&gEventsMutex),
                            "pthread_mutex_lock");
         Event *event = gEventsMap->at((curEventId - i));
-        checkSyscallServer(pthread_mutex_unlock(&gEventsMutex),
+        checkSyscall(LOG_FILENAME, pthread_mutex_unlock(&gEventsMutex),
                            "pthread_mutex_unlock");
         top5Events +=
                 to_string(event->getId()) + "\t" + event->getEventTitle() +
@@ -311,7 +290,7 @@ static void handleGetTop5(int acceptSocket, vector<string> argFromClient) {
                 "\n";
     }
     writeToLog(clientName + "\trequests the top 5 newest events");
-    string mess = SUCCESS_STR;
+    string mess = REQUEST_SUCCESS;
     mess += " " + top5Events;
     sendToClient(acceptSocket, mess);
 }
@@ -323,15 +302,14 @@ static void handleSendRSVP(int acceptSocket, vector<string> argFromClient) {
     string clientName = argFromClient[CLIENT_NAME_IN_VECTOR_INDEX];
 
     const char *curIdStr = argFromClient[EVENT_ID_IN_VECTOR_INDEX].c_str();
-    unsigned int curId;
-    getPosInt(curIdStr, curId);
+    unsigned int curId = (unsigned int) stoi(curIdStr);
 
 
-    checkSyscallServer(pthread_mutex_lock(&gEventsMutex),
+    checkSyscall(LOG_FILENAME, pthread_mutex_lock(&gEventsMutex),
                        "pthread_mutex_lock");
     auto eventPair = gEventsMap->find(curId);
     if (eventPair == gEventsMap->end()) {
-        checkSyscallServer(pthread_mutex_unlock(&gEventsMutex),
+        checkSyscall(LOG_FILENAME, pthread_mutex_unlock(&gEventsMutex),
                            "pthread_mutex_unlock");
         handleNotFoundID(acceptSocket, curId);
     }
@@ -342,7 +320,7 @@ static void handleSendRSVP(int acceptSocket, vector<string> argFromClient) {
         string curRsvpList = event->getRsvpList();
         if (curRsvpList.find(clientName) != string::npos) {
             data += "\talready RSVP for this event";
-            mess = FAILURE_STR;
+            mess = REQUEST_FAILURE;
         }
         else {
             string newRsvpList;
@@ -353,7 +331,7 @@ static void handleSendRSVP(int acceptSocket, vector<string> argFromClient) {
             event->setRsvpList(newRsvpList);
 
             data += "\tis RSVP to event with id " + to_string(curId);
-            mess = SUCCESS_STR;
+            mess = REQUEST_SUCCESS;
         }
         writeToLog(data);
         sendToClient(acceptSocket, mess);
@@ -367,21 +345,20 @@ static void handleGetRSVPList(int acceptSocket, vector<string> argFromClient) {
     string clientName = argFromClient[CLIENT_NAME_IN_VECTOR_INDEX];
 
     const char *curIdStr = argFromClient[EVENT_ID_IN_VECTOR_INDEX].c_str();
-    unsigned int curId;
-    getPosInt(curIdStr, curId);
+    unsigned int curId = (unsigned int) stoi(curIdStr);
 
-    checkSyscallServer(pthread_mutex_lock(&gEventsMutex),
+    checkSyscall(LOG_FILENAME, pthread_mutex_lock(&gEventsMutex),
                        "pthread_mutex_lock");
     auto eventPair = gEventsMap->find(curId);
     if (eventPair == gEventsMap->end()) {
-        checkSyscallServer(pthread_mutex_unlock(&gEventsMutex),
+        checkSyscall(LOG_FILENAME, pthread_mutex_unlock(&gEventsMutex),
                            "pthread_mutex_unlock");
         handleNotFoundID(acceptSocket, curId);
     }
     else {
         Event *event = eventPair->second;
         string rsvplist = event->getRsvpList();
-        string mess = SUCCESS_STR;
+        string mess = REQUEST_SUCCESS;
         mess += " " + rsvplist;
         sendToClient(acceptSocket, mess);
 
@@ -400,28 +377,25 @@ static void handleUnregister(int acceptSocket, vector<string> argFromClient) {
 
     //todo write to log success
 
-    checkSyscallServer(pthread_mutex_lock(&gEventsMutex),
-                       "pthread_mutex_lock");
+    checkSyscall(LOG_FILENAME, pthread_mutex_lock(&gEventsMutex), "pthread_mutex_lock");
+
     for (auto eventPair = gEventsMap->begin();
          eventPair != gEventsMap->end(); ++eventPair) {
         Event *curEvent = eventPair->second;
-        checkSyscallServer(pthread_mutex_unlock(&gEventsMutex),
-                           "pthread_mutex_unlock");
         auto found = curEvent->getRsvpList().find(clientName);
         if (found != string::npos) {
             string oldRsvpList = curEvent->getRsvpList();
-            string newRsvpList = oldRsvpList.erase(
-                    (found, clientName.size()));
+            string newRsvpList = oldRsvpList.erase(found, clientName.size());
             // if there is more than 1 rsvp
             if (newRsvpList.back() == ',') {
                 newRsvpList.pop_back();
             }
             curEvent->setRsvpList(newRsvpList);
         }
-        checkSyscallServer(pthread_mutex_lock(&gEventsMutex),
-                           "pthread_mutex_lock");
     }
-    sendToClient(acceptSocket, SUCCESS_STR);
+
+    checkSyscall(LOG_FILENAME, pthread_mutex_unlock(&gEventsMutex), "pthread_mutex_unlock");
+    sendToClient(acceptSocket, REQUEST_SUCCESS);
     string data = clientName + "\twas unregistered successfully";
     writeToLog(data);
 }
@@ -430,16 +404,15 @@ static void handleUnregister(int acceptSocket, vector<string> argFromClient) {
  * handle a request from the client.
  */
 static void* handleRequest(void* acceptSock) {
-    char sizeMessBuff[INITIAL_MESS_SIZE];
-    readData((int)acceptSock, sizeMessBuff, INITIAL_MESS_SIZE);
+//    char sizeMessBuff[INITIAL_MESS_SIZE];
+//    readData((int)acceptSock, sizeMessBuff, INITIAL_MESS_SIZE);
+//
+//    unsigned int sizeMess;
+//    getPosInt(sizeMessBuff, sizeMess);
+//
+//    char requestBuff[sizeMess];
 
-    unsigned int sizeMess;
-    getPosInt(sizeMessBuff, sizeMess);
-
-    char requestBuff[sizeMess];
-    readData((int)acceptSock, requestBuff, sizeMess);
-
-    const string request = string(requestBuff);
+    string request = readData(*((int*)acceptSock), LOG_FILENAME);
 
     vector<string> argFromClient;
     split(request, argFromClient, ' ');
@@ -447,28 +420,28 @@ static void* handleRequest(void* acceptSock) {
     const char* binaryCommandStr = argFromClient[COMMAND_IN_VECTOR_INDEX].c_str();
 
     if (strcasecmp(binaryCommandStr, REGISTER) == 0) {
-        handleRegister((int) acceptSock, argFromClient);
+        handleRegister(*((int*)acceptSock), argFromClient);
     }
     else if (strcasecmp(binaryCommandStr, CREATE) == 0) {
-        handleCreate((int) acceptSock, argFromClient);
+        handleCreate(*((int*)acceptSock), argFromClient);
     }
     else if (strcasecmp(binaryCommandStr, GET_TOP_5) == 0) {
-        handleGetTop5((int) acceptSock, argFromClient);
+        handleGetTop5(*((int*)acceptSock), argFromClient);
     }
     else if (strcasecmp(binaryCommandStr, SEND_RSVP) == 0) {
-        handleSendRSVP((int) acceptSock, argFromClient);
+        handleSendRSVP(*((int*)acceptSock), argFromClient);
     }
     else if (strcasecmp(binaryCommandStr, GET_RSVPS_LIST) == 0) {
-        handleGetRSVPList((int) acceptSock, argFromClient);
+        handleGetRSVPList(*((int*)acceptSock), argFromClient);
     }
     else {  //case UNREGISTER
-        handleUnregister((int) acceptSock, argFromClient);
+        handleUnregister(*((int*)acceptSock), argFromClient);
     }
 
 
-    checkSyscallServer(pthread_mutex_lock(&gThreadsMutex), "pthread_mutex_lock");
+    checkSyscall(LOG_FILENAME, pthread_mutex_lock(&gThreadsMutex), "pthread_mutex_lock");
     gThreads.erase(pthread_self());
-    checkSyscallServer(pthread_mutex_unlock(&gThreadsMutex), "pthread_mutex_unlock");
+    checkSyscall(LOG_FILENAME, pthread_mutex_unlock(&gThreadsMutex), "pthread_mutex_unlock");
 
 
     pthread_exit(NULL);
@@ -484,10 +457,10 @@ static int establish(unsigned short portnum) {
     struct hostent* hp;
 
     memset(&sa,0,sizeof(struct sockaddr_in));
-    checkSyscallServer(gethostname(myName, MAX_HOST_NAME), "gethostname");
+    checkSyscall(LOG_FILENAME, gethostname(myName, MAX_HOST_NAME), "gethostname");
     hp = gethostbyname(myName);
     if (hp == NULL) {
-        syscallHandler("gethostbyname");
+        syscallHandler(LOG_FILENAME, "gethostbyname");
     }
 
     sa.sin_family = hp->h_addrtype;
@@ -495,10 +468,10 @@ static int establish(unsigned short portnum) {
     sa.sin_port = htons(portnum);
 
     serverS = socket(AF_INET,SOCK_STREAM,0);
-    checkSyscallServer(serverS, "socket");
+    checkSyscall(LOG_FILENAME, serverS, "socket");
 
-    checkSyscallServer(bind(serverS, (struct sockaddr*)&sa, sizeof(sa)), "bind");
-    checkSyscallServer(listen(serverS, N_PEDING_CLIENTS), "listen");
+    checkSyscall(LOG_FILENAME, bind(serverS, (struct sockaddr*)&sa, sizeof(sa)), "bind");
+    checkSyscall(LOG_FILENAME, listen(serverS, N_PEDING_CLIENTS), "listen");
 
     return serverS;
 }
@@ -536,13 +509,12 @@ int main(int argc, char *argv[]) {
     while ((acceptSock = accept(serverS, (struct sockaddr *) &client,
                                (socklen_t *) &client))) {
 
-        checkSyscallServer(acceptSock, "accept");
+        checkSyscall(LOG_FILENAME, acceptSock, "accept");
         pthread_t requestThread;
-        checkSyscallServer(pthread_create(&requestThread, NULL, handleRequest,
-                                          NULL), "pthrea_create");
-        checkSyscallServer(pthread_mutex_lock(&gThreadsMutex), "pthread_mutex_lock");
+        checkSyscall(LOG_FILENAME, pthread_create(&requestThread, NULL, handleRequest, &acceptSock), "pthrea_create");
+        checkSyscall(LOG_FILENAME, pthread_mutex_lock(&gThreadsMutex), "pthread_mutex_lock");
         gThreads.insert(requestThread);
-        checkSyscallServer(pthread_mutex_unlock(&gThreadsMutex), "pthread_mutex_unlock");
+        checkSyscall(LOG_FILENAME, pthread_mutex_unlock(&gThreadsMutex), "pthread_mutex_unlock");
 
     }
 
