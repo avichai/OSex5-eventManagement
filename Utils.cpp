@@ -17,7 +17,6 @@
 #define SPACE " "
 #define NEWLINE "\n"
 #define COMMA ","
-#define TAB "\t"
 
 
 #define FAILURE -1
@@ -127,19 +126,11 @@ void writeToLog(string logName, string data) {
         return;
     }
 
-    gLogFile << getTime(true) + TAB << data;
+    gLogFile << getTime(true) << "\t" << data;
     gLogFile.close();
 }
 
-/*
- * Writes a syscall failure to the log.
- */
-void checkSyscall(int result, string logName, string syscall) {
-    if (result < 0) {
-        string error = "ERROR";
-        writeToLog(logName, error + TAB + syscall + TAB + to_string(errno) + "." + NEWLINE);
-    }
-}
+
 
 
 /*
@@ -147,7 +138,7 @@ void checkSyscall(int result, string logName, string syscall) {
  */
 static void syscallHandler(string logName, string funcName) {
     writeToLog(logName, "ERROR\t" + funcName + "\t" + to_string(errno));
-    exit(EXIT_FAILURE);
+    exit(1);
 }
 
 /*
@@ -172,7 +163,6 @@ string popNextToken(string &str, string delim) {
     str.erase(0, pos + delim.length());
     return token;
 }
-
 
 /*
  * Peeks token (defined by delim) in str.

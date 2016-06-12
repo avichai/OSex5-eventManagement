@@ -182,18 +182,13 @@ static int callServer(struct sockaddr_in sa) {
     int s;
 
     s = socket(AF_INET, SOCK_STREAM, 0);
-    checkSyscall(s, logName, "socket");
-    if (s < 0) {
-        exit(1);
-    }
+    checkSyscall(logName, s, "socket");
+
 
     int c = connect(s, (struct sockaddr*)&sa, sizeof(sa));
-    checkSyscall(c, logName, "connect");
-    if (c < 0) {
-        exit(1);
-    }
+    checkSyscall(logName, c, "connect");
 
-    return socket;
+    return s;
 }
 
 /*
