@@ -1,8 +1,4 @@
-#include <iostream>
-#include <string.h>
-#include <unistd.h>
-#include <regex>
-#include <fstream>
+#include "Utils.h"
 
 
 #define REGISTER "1"
@@ -12,12 +8,12 @@
 #define GET_RSVPS_LIST "5"
 #define UNREGISTER "6"
 
-#define REQUSET_SUCCESS "0"
-#define REQUSET_FAILURE "1  "
+#define REQUEST_SUCCESS "0"
+#define REQUEST_FAILURE "1"
 #define SPACE " "
 #define NEWLINE "\n"
 #define COMMA ","
-
+#define MAX_MESSAGE 5
 
 #define FAILURE -1
 #define SUCCESS 0
@@ -26,8 +22,7 @@
 
 using namespace std;
 
-//todo: server log should be protected by a mutex.
-//todo: in getTime should add a 0 in case one section is just one digit?
+
 
 /*
  * return the current as a string.
@@ -68,53 +63,6 @@ bool isAddress(char* addr) {
     return regex_match(addr, regex("((\\d)+\\.)+(\\d)+"));
 }
 
-
-/*
- * Writes data to the given socket.
- * todo: maybe +1 to the strlen
- * todo: should write in loop
- */
-int writeData(int socket, string data) {
-    const char* cData = data.c_str();
-    cerr << "### write ###" << endl;
-    cerr << "data: " << cData << endl;
-    cerr << "length: " << strlen(cData) << endl;
-    cerr << "socket: " << socket << endl;
-    if (write(socket, cData, strlen(cData)) < 0) {
-        cerr<<"failure" << endl;
-        return FAILURE;
-    }
-    cerr << "### write finished ###" << endl;
-    return SUCCESS;
-}
-
-//todo: change ret val of readData to string (the function would first read the num of chars
-//todo: to read, malloc a char* buf of that size and then returns a string representaion
-//todo: of that char (remember to free the buf before return).
-/*
- * Reads data from the given socket.
- * todo: get n within the function rather then as arg
- */
-int readData(int socket, char* buf, int n) {
-    int bCount;
-    int br;
-    bCount = 0, br = 0;
-
-    while (bCount < n) {
-        if ((br = read(socket,buf,n-bCount)) > 0) {
-            bCount += br;
-            buf += br;
-        }
-
-        if (br < 1) {
-            return -1;
-        }
-    }
-
-    return bCount;
-}
-
-
 /*
  * Writes data to the given log.
  */
@@ -130,13 +78,10 @@ void writeToLog(string logName, string data) {
     gLogFile.close();
 }
 
-
-
-
 /*
  * Handles syscall failure in the server side.
  */
-static void syscallHandler(string logName, string funcName) {
+void syscallHandler(string logName, string funcName) {
     writeToLog(logName, "ERROR\t" + funcName + "\t" + to_string(errno));
     exit(1);
 }
@@ -144,10 +89,82 @@ static void syscallHandler(string logName, string funcName) {
 /*
  * Check syscall in the server side.
  */
-static void checkSyscall(string logName, int res, string funcName) {
+void checkSyscall(string logName, int res, string funcName) {
     if (res < 0) {
         syscallHandler(logName, funcName);
     }
+}
+
+/*
+ * Pad the data's size to fit the protocol (assuming each message is of
+ * length 99,999 chars).
+ */
+static string padDataSize(string dataSize) {
+    int nZeroes =  (int) (MAX_MESSAGE - strlen(dataSize.c_str()));
+    if (nZeroes < 0) {      // shouldn't reach here.
+        return "";
+    }
+    string padZeroes = "";
+    for (int i = 0; i < nZeroes; ++i) {
+        padZeroes += "0";
+    }
+    return padZeroes + dataSize;
+}
+
+/*
+ * Writes data to the given socket.
+ * todo: maybe +1 to the strlen
+ * todo: should write in loop
+ */
+void writeData(int socket, string data, string logName) {
+    int dataSize = (int) strlen(data.c_str()) + 1;  // for the null char.
+
+    data = padDataSize(to_string(dataSize)) + data;
+    const char* cData = data.c_str();
+
+    int charsWritten = 0, tmpChars;
+    while (charsWritten < dataSize) {
+        if ((tmpChars = (int) write(socket, cData, (size_t) dataSize - charsWritten)) > 0) {
+            charsWritten += tmpChars;
+            cData += tmpChars;
+        }
+
+        if (tmpChars < 0) {
+            syscallHandler(logName,"write");
+        }
+    }
+}
+
+/*
+ * Reads n chars from socket into buf.
+ */
+void readHelper(int socket, char* buf, int n, string logName) {
+    int charsRead = 0, tmpChars;
+    while (charsRead < n) {
+        if ((tmpChars = (int) read(socket, buf, (size_t) n - charsRead)) > 0) {
+            charsRead += tmpChars;
+            buf += tmpChars;
+        }
+
+        if (tmpChars < 0) {
+            syscallHandler(logName, "read");
+        }
+    }
+}
+
+/*
+ * Reads data from the given socket.
+ */
+string readData(int socket, string logName) {
+    char messageSizeStr[MAX_MESSAGE];
+    readHelper(socket,messageSizeStr,MAX_MESSAGE,logName);
+
+    int messageSize = stoi(messageSizeStr);
+    char* message = (char*) malloc(messageSize);
+    readHelper(socket,message,messageSize,logName);
+    string messageStr = string(message);
+    free(message);
+    return messageStr;
 }
 
 /*

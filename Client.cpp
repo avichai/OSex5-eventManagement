@@ -5,7 +5,7 @@
 #include <assert.h>
 #include <set>
 #include "Client.h"
-#include "Utils.cpp"
+#include "Utils.h"
 
 
 #define CLIENT_VALID_NARGS 4
@@ -20,7 +20,6 @@
 #define GET_RSVPS_LIST_CMD "GET_RSVPS_LIST"
 #define UNREGISTER_CMD "UNREGISTER"
 
-#define MAX_RESPONSE_LEN 99999
 #define CREATE_NARGS 3
 
 using namespace std;
@@ -286,10 +285,9 @@ static void clientRun(string clientName, struct sockaddr_in serverAddr) {
 
         message = cmd + SPACE + clientName + SPACE + input;
         serverS = callServer(serverAddr);
-        writeData(serverS, message);
-        char response[MAX_RESPONSE_LEN];
-        readData(serverS, response, MAX_RESPONSE_LEN);
-        handleResponse(string(response), cmd, input, stillRunning);
+        writeData(serverS, message, logName);
+        string response = readData(serverS, logName);
+        handleResponse(response, cmd, input, stillRunning);
     }
 }
 
@@ -297,7 +295,7 @@ static void clientRun(string clientName, struct sockaddr_in serverAddr) {
  * Handles the response received by the server.
  */
 static void handleResponse(string response, string cmd, string input, bool &stillRunning) {
-    bool requestSucceed = popNextToken(response, SPACE) == REQUSET_SUCCESS;
+    bool requestSucceed = popNextToken(response, SPACE) == REQUEST_SUCCESS;
 
     if (cmd == REGISTER) {
         if (requestSucceed) {
