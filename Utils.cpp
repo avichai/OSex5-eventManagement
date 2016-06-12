@@ -136,7 +136,8 @@ void writeToLog(string logName, string data) {
  */
 void checkSyscall(int result, string logName, string syscall) {
     if (result < 0) {
-        writeToLog(logName, syscall + TAB + to_string(errno) + "." + NEWLINE);
+        string error = "ERROR";
+        writeToLog(logName, error + TAB + syscall + TAB + to_string(errno) + "." + NEWLINE);
     }
 }
 
