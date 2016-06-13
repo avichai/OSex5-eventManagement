@@ -3,5 +3,5 @@ project(ex5)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
-set(SOURCE_FILES Server.cpp Server.h  Client.h Server.cpp Utils.cpp Utils.h main.cpp)
+set(SOURCE_FILES emServer.cpp emClient.cpp emServer.cpp Utils.cpp Utils.h main.cpp)
 add_executable(ex5 ${SOURCE_FILES})

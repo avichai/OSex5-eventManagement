@@ -3,10 +3,7 @@
 #include <netdb.h>
 #include <unistd.h>
 #include <iostream>
-#include <sys/socket.h>
-#include <netinet/in.h>
 #include <arpa/inet.h>
-#include "Server.h"
 #include "Utils.h"
 #include <unordered_set>
 #include <unordered_map>
@@ -91,22 +88,17 @@ public:
         return eventDescription;
     }
 
-//    const string &getRsvpList() const {
-//        return rsvpList;
-//    }
-//
-//    void setRsvpList(const string &rsvpList) {
-//        Event::rsvpList = rsvpList;
-//    }
 };
 
 /*
  * write the data to the log using utils function.
  */
 static void writeToLog(string data) {
-    checkSyscall(LOG_FILENAME, pthread_mutex_lock(&gLogFileMutex), "pthread_mutex_lock");
+    checkSyscall(LOG_FILENAME, pthread_mutex_lock(&gLogFileMutex),
+                 "pthread_mutex_lock");
     writeToLog(LOG_FILENAME, data);
-    checkSyscall(LOG_FILENAME, pthread_mutex_unlock(&gLogFileMutex), "pthread_mutex_unlock");
+    checkSyscall(LOG_FILENAME, pthread_mutex_unlock(&gLogFileMutex),
+                 "pthread_mutex_unlock");
 }
 
 /*
@@ -131,24 +123,6 @@ void split(const string &txt, vector<std::string> &strs, char ch) {
     strs.push_back(txt.substr(initialPos, min(pos, txt.size()) - initialPos));
 }
 
-
-///*
-// * Handles syscall failure in the server side.
-// */
-//static void syscallHandler(string funcName) {
-//    writeToLog("ERROR\t" + funcName + "\t" + to_string(errno));
-//    exit(EXIT_FAILURE);
-//}
-//
-///*
-// * Check syscall in the server side.
-// */
-//static void checkSyscall(int res, string funcName) {
-//    if (res < 0) {
-//        syscallHandler(funcName);
-//    }
-//}
-
 /*
  * listen to keyboard until it gets 'EXIT' and terminate the program.
  */
@@ -171,6 +145,7 @@ static void* listenToKeyboard(void* serverS) {
 static void terminateServer(int* serverS) {
     checkSyscall(LOG_FILENAME, pthread_mutex_lock(&gThreadsMutex),
                  "pthread_mutex_lock");
+    // finish handling requests
     for (thread_t thread : gThreads) {
         checkSyscall(LOG_FILENAME, pthread_join(thread, NULL), "pthread_join");
     }
@@ -180,7 +155,7 @@ static void terminateServer(int* serverS) {
 
     close(*serverS);
 
-
+    // deleting events
     checkSyscall(LOG_FILENAME, pthread_mutex_lock(&gEventsMutex),
                  "pthread_mutex_lock");
     for (auto it = gEventsMap.begin(); it != gEventsMap.end(); ++it) {
@@ -201,24 +176,6 @@ static void terminateServer(int* serverS) {
 static void sendToClient(int accSocket, string mess) {
     writeData(accSocket,mess,LOG_FILENAME);
 }
-
-/*
- * check if the current client already registered to the server.
- */
-//static int checkIfConnectionWasMade(int acceptSocket, vector<string> argFromClient, string& clientName) {
-//
-//    checkSyscall(pthread_mutex_lock(&gClientsMutex), "pthread_mutex_lock");
-//    if (gClientsSet->find(argFromClient[CLIENT_NAME_IN_VECTOR_INDEX]) == gClientsSet->end()) {
-//    checkSyscall(pthread_mutex_unlock(&gClientsMutex), "pthread_mutex_unlock");
-//
-//        clientName = argFromClient[CLIENT_NAME_IN_VECTOR_INDEX];
-//        writeToLog("ERROR:" + clientName + "\tis already exists");
-//        sendToClient(acceptSocket, );
-//        return FAILURE;
-//    }
-//    return SUCCESS;
-//
-//}
 
 /*
  * handles the situation when where the client asked an event id that isn't
@@ -291,7 +248,8 @@ static void handleCreate(int acceptSocket, vector<string> argFromClient) {
                        "pthread_mutex_unlock");
 
     writeToLog(clientName + "\tevent id " + to_string(eventId)
-                             + "was assigned to the event with title " + eventTitle);
+                             + " was assigned to the event with title " +
+                       eventTitle);
     string mess = REQUEST_SUCCESS;
     mess += SPACE + to_string(eventId);
     sendToClient(acceptSocket, mess);
@@ -409,7 +367,8 @@ static void handleGetRSVPList(int acceptSocket, vector<string> argFromClient) {
 
 
         //todo check if there need to be a space after \t - this is not clear from format.
-        string data = clientName + "\trequests the RSVP's list for event id " + to_string(curId);
+        string data = clientName + "\trequests the RSVP's list for event id " +
+                to_string(curId);
         writeToLog(data);
     }
     checkSyscall(LOG_FILENAME, pthread_mutex_unlock(&gEventsMutex),
@@ -428,7 +387,8 @@ static void handleUnregister(int acceptSocket, vector<string> argFromClient) {
     checkSyscall(LOG_FILENAME, pthread_mutex_unlock(&gClientNamesMutex),
                  "pthread_mutex_unlock");
 
-    checkSyscall(LOG_FILENAME, pthread_mutex_lock(&gEventsMutex), "pthread_mutex_lock");
+    checkSyscall(LOG_FILENAME, pthread_mutex_lock(&gEventsMutex),
+                 "pthread_mutex_lock");
 
 
     for (auto eventPair = gEventsMap.begin();
@@ -437,7 +397,8 @@ static void handleUnregister(int acceptSocket, vector<string> argFromClient) {
         curEvent->rsvpList.erase(clientName);
     }
 
-    checkSyscall(LOG_FILENAME, pthread_mutex_unlock(&gEventsMutex), "pthread_mutex_unlock");
+    checkSyscall(LOG_FILENAME, pthread_mutex_unlock(&gEventsMutex),
+                 "pthread_mutex_unlock");
     sendToClient(acceptSocket, REQUEST_SUCCESS);
     string data = clientName + "\twas unregistered successfully";
     writeToLog(data);
@@ -451,7 +412,8 @@ static void* handleRequest(void* acceptSock) {
 
     vector<string> argFromClient;
     split(request, argFromClient, ' ');
-    const char* binaryCommandStr = argFromClient[COMMAND_IN_VECTOR_INDEX].c_str();
+    const char* binaryCommandStr =
+            argFromClient[COMMAND_IN_VECTOR_INDEX].c_str();
 
     if (strcasecmp(binaryCommandStr, REGISTER) == 0) {
         handleRegister(*((int*)acceptSock), argFromClient);
@@ -475,9 +437,11 @@ static void* handleRequest(void* acceptSock) {
         assert(0);//todo
     }
 
-    checkSyscall(LOG_FILENAME, pthread_mutex_lock(&gThreadsMutex), "pthread_mutex_lock");
+    checkSyscall(LOG_FILENAME, pthread_mutex_lock(&gThreadsMutex),
+                 "pthread_mutex_lock");
     gThreads.erase(pthread_self());
-    checkSyscall(LOG_FILENAME, pthread_mutex_unlock(&gThreadsMutex), "pthread_mutex_unlock");
+    checkSyscall(LOG_FILENAME, pthread_mutex_unlock(&gThreadsMutex),
+                 "pthread_mutex_unlock");
 
     pthread_exit(NULL);
 }
@@ -492,7 +456,8 @@ static int establish(unsigned short portnum) {
     struct hostent* hp;
 
     memset(&sa,0,sizeof(struct sockaddr_in));
-    checkSyscall(LOG_FILENAME, gethostname(myName, MAX_HOST_NAME), "gethostname");
+    checkSyscall(LOG_FILENAME, gethostname(myName, MAX_HOST_NAME),
+                 "gethostname");
     hp = gethostbyname(myName);
     if (hp == NULL) {
         syscallHandler(LOG_FILENAME, "gethostbyname");
@@ -507,7 +472,8 @@ static int establish(unsigned short portnum) {
     serverS = socket(AF_INET,SOCK_STREAM,0);
     checkSyscall(LOG_FILENAME, serverS, "socket");
 
-    checkSyscall(LOG_FILENAME, bind(serverS, (struct sockaddr*)&sa, sizeof(sa)), "bind");
+    checkSyscall(LOG_FILENAME, bind(serverS, (struct sockaddr*)&sa,
+                                    sizeof(sa)), "bind");
     checkSyscall(LOG_FILENAME, listen(serverS, N_PEDING_CLIENTS), "listen");
 
     return serverS;
@@ -532,18 +498,23 @@ int main(int argc, char *argv[]) {
     struct sockaddr client;
 
     thread_t keyboardThread;
-    checkSyscall(LOG_FILENAME,pthread_create(&keyboardThread, NULL, listenToKeyboard, &serverS),"pthread_create");
+    checkSyscall(LOG_FILENAME,pthread_create(&keyboardThread, NULL,
+                 listenToKeyboard, &serverS),"pthread_create");
 
     // after shutdown we can assume no more connects will be made.
     bool run = true;
     while (run) {
-        acceptSock = accept(serverS, (struct sockaddr*) &client, (socklen_t *) &client) ;
+        acceptSock = accept(serverS, (struct sockaddr*) &client,
+                            (socklen_t *) &client) ;
         checkSyscall(LOG_FILENAME, acceptSock, "accept");
         pthread_t requestThread;
-        checkSyscall(LOG_FILENAME, pthread_mutex_lock(&gThreadsMutex), "pthread_mutex_lock");
-        checkSyscall(LOG_FILENAME, pthread_create(&requestThread, NULL, handleRequest, &acceptSock), "pthread_create");
+        checkSyscall(LOG_FILENAME, pthread_mutex_lock(&gThreadsMutex),
+                     "pthread_mutex_lock");
+        checkSyscall(LOG_FILENAME, pthread_create(&requestThread, NULL,
+                     handleRequest, &acceptSock), "pthread_create");
         gThreads.insert(requestThread);
-        checkSyscall(LOG_FILENAME, pthread_mutex_unlock(&gThreadsMutex), "pthread_mutex_unlock");
+        checkSyscall(LOG_FILENAME, pthread_mutex_unlock(&gThreadsMutex),
+                     "pthread_mutex_unlock");
     }
 }
 

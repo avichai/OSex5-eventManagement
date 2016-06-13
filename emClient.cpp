@@ -1,10 +1,8 @@
 #include <netdb.h>
 #include <iostream>
-#include <unistd.h>
 #include <arpa/inet.h>
 #include <assert.h>
 #include <set>
-#include "Client.h"
 #include "Utils.h"
 
 
@@ -38,7 +36,8 @@ static void assignLogName(string clientName);
 static void writeToClientLog(string message);
 static int callServer(struct sockaddr_in sa);
 static void clientRun(string clientName, struct sockaddr_in serverAddr);
-static void handleResponse(string response, string cmd, string input, bool &stillRunning);
+static void handleResponse(string response, string cmd, 
+                           string input, bool &stillRunning);
 
 
 // globalS
@@ -57,10 +56,7 @@ static bool validCreateNArgs(string data) {
             return false;
         }
     }
-    if (data == "") {
-        return false;
-    }
-    return true;
+    return data != "";
 }
 
 /*
@@ -104,7 +100,7 @@ static string getSortedEvents(string events) {
         sortedEvents += *it + ".\n";
     }
     sortedEvents.pop_back(); // .
-    sortedEvents.pop_back(); // \n
+    sortedEvents.pop_back(); // \n      // todo: should remove ".\n"?
     return sortedEvents;
 }
 
@@ -156,7 +152,7 @@ static void writeErrToClientLog(ERROR_TYPE errType, string s1, string s2) {
             errMessage += "first command must be REGISTER.";
             break;
         case ALREADY_REG:
-            errMessage += "the client " + clientName + " was already registered";
+            errMessage+= "the client " + clientName + " was already registered";
             break;
         case ALREADY_RSVP:
             errMessage += "RSVP to event id " + s1 + " was already sent";
@@ -225,7 +221,7 @@ static void clientRun(string clientName, struct sockaddr_in serverAddr) {
                 writeErrToClientLog(MISSING_ARG,CREATE_CMD,"");
                 continue;
             }
-            if (!validCreateArgs(input,invalidArg)) {//todo: how to check args?
+            if (!validCreateArgs(input,invalidArg)) {       // todo: remove in case no need to validate create args
                 writeErrToClientLog(INVALID_ARG,invalidArg,CREATE_CMD);
                 continue;
             }
@@ -265,7 +261,7 @@ static void clientRun(string clientName, struct sockaddr_in serverAddr) {
                 continue;
             }
             if (input == "") {
-                writeErrToClientLog(MISSING_ARG,GET_RSVPS_LIST,"");
+                writeErrToClientLog(MISSING_ARG,GET_RSVPS_LIST_CMD,"");
                 continue;
             }
             if (!isPosInt((char*) input.c_str(),ignored)) {
@@ -298,13 +294,15 @@ static void clientRun(string clientName, struct sockaddr_in serverAddr) {
 /*
  * Handles the response received by the server.
  */
-static void handleResponse(string response, string cmd, string input, bool &stillRunning) {
+static void handleResponse(string response, string cmd, string input, 
+                           bool &stillRunning) {
     bool requestSucceed = popNextToken(response, SPACE) == REQUEST_SUCCESS;
 
     if (cmd == REGISTER) {
         if (requestSucceed) {
             isRegistered = true;
-            writeToClientLog("Client " + clientName + " was registered successfully");
+            writeToClientLog("Client " + clientName + 
+                                     " was registered successfully");
         }
         else {
             writeErrToClientLog(ALREADY_REG,"","");
@@ -314,36 +312,42 @@ static void handleResponse(string response, string cmd, string input, bool &stil
     }
     else if (cmd == CREATE) {
         if (requestSucceed) {
-            writeToClientLog("Event id " + response + " was created successfully");
+            writeToClientLog("Event id " + response + 
+                                     " was created successfully");
         }
     }
     else if (cmd == GET_TOP_5) {
         if (requestSucceed) {
             string sortedEvents = getSortedEvents(response);
-            writeToClientLog("Top 5 newest events are:\n" + sortedEvents);  //todo: maybe with ".\n"?
+            writeToClientLog("Top 5 newest events are:\n" + sortedEvents);
         }
     }
     else if (cmd == SEND_RSVP) {
         if (requestSucceed) {
             eventsSet.insert(input);
-            writeToClientLog("RSVP to event id " + input + " was received successfully");
+            writeToClientLog("RSVP to event id " + input + 
+                                     " was received successfully");
         }
         else {
-            writeErrToClientLog(FAILED,"send RSVP to event id " + input + ": the event doesn't exists" ,"");
+            writeErrToClientLog(FAILED,"send RSVP to event id " + input + 
+                    ": the event doesn't exists" ,"");
         }
     }
     else if (cmd == GET_RSVPS_LIST) {
         if (requestSucceed) {
             string sortedRSVPs = getSortedRSVPs(response);  //todo (without\n at the end)
-            writeToClientLog("The RSVP's list for event id " + input + " is: " + sortedRSVPs);
+            writeToClientLog("The RSVP's list for event id " + input + 
+                                     " is: " + sortedRSVPs);
         }
         else {
-            writeErrToClientLog(FAILED,"get RSVP's list to event id " + input + ": the event doesn't exists" ,"");
+            writeErrToClientLog(FAILED,"get RSVP's list to event id " + input + 
+                    ": the event doesn't exists" ,"");
         }
     }
     else if (cmd == UNREGISTER) {
         if (requestSucceed) {
-            writeToClientLog("Client " + clientName + " was unregistered successfully");
+            writeToClientLog("Client " + clientName + 
+                                     " was unregistered successfully");
             stillRunning = false;
             exit(0);
         }
@@ -377,6 +381,5 @@ int main(int argc, char *argv[]) {
     // runs the client
     clientRun(clientName, serverAddr);
 
-    cout << "client - " << clientName << " exit!!" << endl;  //todo: remove
     return 0;
 }

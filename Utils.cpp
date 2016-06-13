@@ -15,8 +15,6 @@
 #define COMMA ","
 #define MAX_MESSAGE 5
 
-#define FAILURE -1
-#define SUCCESS 0
 #define DECIMAL 10
 
 
@@ -40,8 +38,6 @@ string getTime(bool withColons) {
     return string(str);
 }
 
-
-
 /*
  * Returns true iff the string represents a positive int, and assigns the int
  * value to the given reference.
@@ -57,7 +53,6 @@ bool isPosInt(char *str, unsigned int &portNum)
 
 /*
  * Returns true iff the given addr represents an address.
- * todo: check if works
  */
 bool isAddress(char* addr) {
     return regex_match(addr, regex("((\\d)+\\.)+(\\d)+"));
@@ -75,7 +70,7 @@ void writeToLog(string logName, string data) {
     }
 
     gLogFile << getTime(true) << "\t" << data << ".\n";
-    cerr << getTime(true) << "\t" << data << ".\n"; //todo
+    cerr << getTime(true) << "\t" << data << ".\n"; //todo: remove
     gLogFile.close();
 }
 
@@ -114,8 +109,6 @@ static string padDataSize(string dataSize) {
 
 /*
  * Writes data to the given socket.
- * todo: maybe +1 to the strlen
- * todo: should write in loop
  */
 void writeData(int socket, string data, string logName) {
     int dataSize = (int) data.size() + 1;  // for the null char.
@@ -126,7 +119,8 @@ void writeData(int socket, string data, string logName) {
 
     int charsWritten = 0, tmpChars;
     while (charsWritten < dataSize) {
-        if ((tmpChars = (int) write(socket, cProData, (size_t) dataSize - charsWritten)) > 0) {
+        if ((tmpChars = (int) write(socket, cProData, 
+                                    (size_t) dataSize - charsWritten)) > 0) {
             charsWritten += tmpChars;
             cProData += tmpChars;
         }
