@@ -22,8 +22,6 @@
 #define COMMA ","
 #define MAX_MESSAGE 5
 
-#define FAILURE -1
-#define SUCCESS 0
 #define DECIMAL 10
 
 
