@@ -13,7 +13,7 @@
 
 
 
-#define MAX_HOST_NAME 40    //todo
+#define MAX_HOST_NAME 40
 #define N_PEDING_CLIENTS 10
 #define SERVER_VALID_NARGS 2
 #define SERVER_PORT_INDEX 1
@@ -365,8 +365,6 @@ static void handleGetRSVPList(int acceptSocket, vector<string> argFromClient) {
         mess += " " + rsvplist;
         sendToClient(acceptSocket, mess);
 
-
-        //todo check if there need to be a space after \t - this is not clear from format.
         string data = clientName + "\trequests the RSVP's list for event id " +
                 to_string(curId);
         writeToLog(data);
@@ -433,9 +431,7 @@ static void* handleRequest(void* acceptSock) {
     else if (strcasecmp(binaryCommandStr, UNREGISTER) == 0) {
         handleUnregister(*((int*)acceptSock), argFromClient);
     }
-    else {
-        assert(0);//todo
-    }
+
 
     checkSyscall(LOG_FILENAME, pthread_mutex_lock(&gThreadsMutex),
                  "pthread_mutex_lock");

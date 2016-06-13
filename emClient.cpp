@@ -20,12 +20,18 @@
 
 #define CREATE_NARGS 3
 
+#define CREATE_TITLE_LEN 30
+#define CREATE_DATE_LEN 30
+#define CREATE_DESC_LEN 256
+
+
+
 using namespace std;
 
 
 enum ERROR_TYPE {ILLEGAL_CMD, MISSING_ARG, INVALID_ARG,
                  FIRST_CMD_REG, ALREADY_REG, ALREADY_RSVP,
-                 INVALID_CMD, FAILED};
+                 INVALID_CMD, FAILED, CREATE_LEN};
 
 
 // forward declarations
@@ -60,17 +66,15 @@ static bool validCreateNArgs(string data) {
 }
 
 /*
- * Validate the create arguments. If not valid, assigns the invalid argument
- * to the given invalidArg string.
+ * Validates the create's arguments length.
  */
-static bool validCreateArgs(string data, string & invalidArg) {
-    string eventTitle = popNextToken(data, SPACE);
-    string eventDate = popNextToken(data, SPACE);
-    string eventDesc = popNextToken(data, SPACE);
-
-    //todo: how to validate these args?
-
-    return true;
+static bool validCreateLength(string data) {
+    string title = popNextToken(data,SPACE);
+    string date = popNextToken(data,SPACE);
+    string desc = popNextToken(data,SPACE);
+    return ((title.length() <= CREATE_TITLE_LEN) ||
+            (date.length() <= CREATE_DATE_LEN) ||
+            (desc.length() <= CREATE_DATE_LEN));
 }
 
 /*
@@ -99,8 +103,6 @@ static string getSortedEvents(string events) {
     for (auto it = vec.begin(); it != vec.end(); ++it) {
         sortedEvents += *it + ".\n";
     }
-    sortedEvents.pop_back(); // .
-    sortedEvents.pop_back(); // \n      // todo: should remove ".\n"?
     return sortedEvents;
 }
 
@@ -163,6 +165,10 @@ static void writeErrToClientLog(ERROR_TYPE errType, string s1, string s2) {
         case FAILED:
             errMessage += "failed to " + s1;
             break;
+        case CREATE_LEN:
+            errMessage += "parameter max lengths are: TITLE = 30, DATE = 30, "
+                    "DESCRIPTION = 256";
+            break;
     }
     writeToLog(logName, errMessage);
 }
@@ -212,7 +218,6 @@ static void clientRun(string clientName, struct sockaddr_in serverAddr) {
             cmd = REGISTER;
         }
         else if (strcasecmp(cmdC, CREATE_CMD) == 0) {
-            string invalidArg;
             if (!isRegistered) {
                 writeErrToClientLog(FIRST_CMD_REG,"","");
                 continue;
@@ -221,9 +226,8 @@ static void clientRun(string clientName, struct sockaddr_in serverAddr) {
                 writeErrToClientLog(MISSING_ARG,CREATE_CMD,"");
                 continue;
             }
-            if (!validCreateArgs(input,invalidArg)) {       // todo: remove in case no need to validate create args
-                writeErrToClientLog(INVALID_ARG,invalidArg,CREATE_CMD);
-                continue;
+            if (!validCreateLength(input)) {
+                writeErrToClientLog(CREATE_LEN,"","");
             }
             cmd = CREATE;
         }
@@ -335,7 +339,7 @@ static void handleResponse(string response, string cmd, string input,
     }
     else if (cmd == GET_RSVPS_LIST) {
         if (requestSucceed) {
-            string sortedRSVPs = getSortedRSVPs(response);  //todo (without\n at the end)
+            string sortedRSVPs = getSortedRSVPs(response);
             writeToClientLog("The RSVP's list for event id " + input + 
                                      " is: " + sortedRSVPs);
         }
@@ -351,9 +355,6 @@ static void handleResponse(string response, string cmd, string input,
             stillRunning = false;
             exit(0);
         }
-    }
-    else {
-        assert(0); //todo: remove
     }
 }
 
