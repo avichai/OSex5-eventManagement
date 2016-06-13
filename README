@@ -1,0 +1,20 @@
+roee28c, avichai
+Roee Cates (308298827), Avichai BendDavid (203455126)
+EX: 4
+
+
+FILES:
+README -- this file.
+Makefile -- use make to create a emServer and emClient executable file.
+Utils.h -- An header file shared function of the client and the server.
+Utils.cpp -- Implementation for utils functions.
+emServer.cpp -- the server implementation.
+emClient.cpp -- the client implementation.
+
+
+REMARKS:
+
+
+
+QUESTIONS:
+1.
