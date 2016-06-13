@@ -155,7 +155,7 @@ static void writeErrToClientLog(ERROR_TYPE errType, string s1, string s2) {
             errMessage+= "the client " + clientName + " was already registered";
             break;
         case ALREADY_RSVP:
-            errMessage += "RSVP to event id " + s1 + " was already sent";
+            errMessage = "RSVP to event id " + s1 + " was already sent";
             break;
         case INVALID_CMD:
             errMessage += "Invalid command";
@@ -226,6 +226,7 @@ static void clientRun(string clientName, struct sockaddr_in serverAddr) {
             }
             if (!validCreateLength(input)) {
                 writeErrToClientLog(CREATE_LEN,"","");
+                continue;
             }
             cmd = CREATE;
         }
