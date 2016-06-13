@@ -181,7 +181,7 @@ static void sendToClient(int accSocket, string mess) {
  * exists.
  */
 static void handleNotFoundID(int acceptSocket, int curId) {
-    writeToLog("ERROR\tevent id: " + to_string(curId) +
+    writeToLog("ERROR: event id: " + to_string(curId) +
             " is not on the server events id's list");
     string mess = REQUEST_FAILURE;
     sendToClient(acceptSocket, mess);
@@ -199,7 +199,7 @@ static void handleRegister(int acceptSocket, vector<string> argFromClient) {
                  "pthread_mutex_lock");
     if (gClientNames.find(clientName) != gClientNames.end()) {
         mess = REQUEST_FAILURE;
-        data = "ERROR\t" + clientName + "\tis already exists";
+        data = "ERROR: " + clientName + "\tis already exists";
     }
     else {
         gClientNames.insert(clientName);

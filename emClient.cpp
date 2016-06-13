@@ -1,7 +1,6 @@
 #include <netdb.h>
 #include <iostream>
 #include <arpa/inet.h>
-#include <assert.h>
 #include <set>
 #include "Utils.h"
 
