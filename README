@@ -13,8 +13,48 @@ emClient.cpp -- the client implementation.
 
 
 REMARKS:
-
+We've implement the server side in the following way:
+For every connection that was maid with a client the server creates a new
+thread that will handle the specific request from the client (Register,
+send_rsvp etc'). If we haven't used thread the server was "blocked" from
+getting more requests from different client (which is an undesirable trait)
+until the server will finish handle the request. By using threads for each
+request, the server is "free" for more requests.
+In addition, our program contains data structure that the threads are
+manipulating, so we use mutexes on each data structure in order to prevent
+unwanted behavior of those data structure.
 
 
 QUESTIONS:
 1.
+a. The client would create another thread which listens to the server (like
+the server listens to the clients). In addition when a client registers, it
+would send (as part of the protocol) his address (the sockaar_in struct).
+b. The server would have to support the "Create and Distribute" command received
+from a client. Now, when the server receives that command, it connects to all
+the registered clients (the server keeps the client addresses received when they
+register) and sends them that the relevant event was created.
+
+2.
+The reliability of the transferred data is crucial in this exercise.
+The reason is that it's useless to handle a request which isn't received
+entirely.
+As we know TCP is reliable protocol compared to the UDP protocol.
+
+3.
+a. ONLINE GAMES: When we play an online game we prefer speed (low latency) over
+reliability and therefore we would use the UDP protocol.
+b. ONLINE MOVIES: When we watch a movie online we prefer speed (low latency) over
+reliability and therefore we would use the UDP protocol.
+
+4.
+We can backup the relevant data and thus recover partially in case the server
+crashes. We may backup the data on the disk of the computer which runs the
+server or even backup the data online in another computer (allows partial
+recovery in case the whole computer which runs the server crashes).
+The crash of the server may be detected by the clients (if the clients don't
+receive replies to requests they can send a message to another server which
+says that the server doesn't response).
+In that case the other server may pull the data which was backed-up earlier by
+the crashed server and initial another server (or maybe serves the clients
+instead).
