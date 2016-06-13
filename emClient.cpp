@@ -29,8 +29,8 @@ using namespace std;
 
 
 enum ERROR_TYPE {ILLEGAL_CMD, MISSING_ARG, INVALID_ARG,
-                 FIRST_CMD_REG, ALREADY_REG, ALREADY_RSVP,
-                 INVALID_CMD, FAILED, CREATE_LEN};
+                 FIRST_CMD_REG, ALREADY_REG, INVALID_CMD,
+                 FAILED, CREATE_LEN};
 
 
 // forward declarations
@@ -48,7 +48,6 @@ static void handleResponse(string response, string cmd,
 string logName;
 string clientName;
 bool isRegistered;
-set<string> eventsSet;
 
 
 /*
@@ -131,6 +130,9 @@ static string getSortedRSVPs(string names) {
  */
 static void assignLogName(string clientName) {
     logName = clientName + "_" + getTime(false) + ".log";
+    ofstream of;
+    of.open(logName, ios::app);
+    of.close();
 }
 
 /*
@@ -143,7 +145,7 @@ static void writeErrToClientLog(ERROR_TYPE errType, string s1, string s2) {
             errMessage += "illegal command";
             break;
         case MISSING_ARG:
-            errMessage += "missing argument in command " + s1;
+            errMessage += "missing arguments in command " + s1;
             break;
         case INVALID_ARG:
             errMessage += "invalid argument " + s1 + " in command " + s2;
@@ -154,11 +156,8 @@ static void writeErrToClientLog(ERROR_TYPE errType, string s1, string s2) {
         case ALREADY_REG:
             errMessage+= "the client " + clientName + " was already registered";
             break;
-        case ALREADY_RSVP:
-            errMessage = "RSVP to event id " + s1 + " was already sent";
-            break;
         case INVALID_CMD:
-            errMessage += "Invalid command";
+            errMessage += "invalid command";
             break;
         case FAILED:
             errMessage += "failed to " + s1;
@@ -247,12 +246,9 @@ static void clientRun(string clientName, struct sockaddr_in serverAddr) {
                 writeErrToClientLog(MISSING_ARG,SEND_RSVP_CMD,"");
                 continue;
             }
-            if (!isPosInt((char*) input.c_str(),ignored)) {
-                writeErrToClientLog(INVALID_ARG,input,SEND_RSVP_CMD);
-                continue;
-            }
-            if (eventsSet.find(input) != eventsSet.end()) {
-                writeErrToClientLog(ALREADY_RSVP,input,"");
+            string eventId = peekFirstToken(input,SPACE);
+            if (!isPosInt((char*) eventId.c_str(),ignored)){
+                writeErrToClientLog(INVALID_ARG,eventId,SEND_RSVP_CMD);
                 continue;
             }
             cmd = SEND_RSVP;
@@ -267,8 +263,9 @@ static void clientRun(string clientName, struct sockaddr_in serverAddr) {
                 writeErrToClientLog(MISSING_ARG,GET_RSVPS_LIST_CMD,"");
                 continue;
             }
-            if (!isPosInt((char*) input.c_str(),ignored)) {
-                writeErrToClientLog(INVALID_ARG,input,GET_RSVPS_LIST);
+            string eventId = peekFirstToken(input,SPACE);
+            if (!isPosInt((char*) eventId.c_str(),ignored)) {
+                writeErrToClientLog(INVALID_ARG,eventId,GET_RSVPS_LIST);
                 continue;
             }
             cmd = GET_RSVPS_LIST;
@@ -326,25 +323,34 @@ static void handleResponse(string response, string cmd, string input,
         }
     }
     else if (cmd == SEND_RSVP) {
+        string eventId = peekFirstToken(input, SPACE);
         if (requestSucceed) {
-            eventsSet.insert(input);
-            writeToClientLog("RSVP to event id " + input + 
-                                     " was received successfully");
+            string logMessage;
+            if (popNextToken(response,SPACE) == "") {
+                logMessage = "RSVP to event id " + eventId +
+                             " was received successfully";
+            }
+            else {
+                logMessage = "RSVP to event id " +eventId +" was already sent";
+            }
+
+            writeToClientLog(logMessage);
         }
         else {
-            writeErrToClientLog(FAILED,"send RSVP to event id " + input + 
+            writeErrToClientLog(FAILED,"send RSVP to event id " + eventId +
                     ": the event doesn't exists" ,"");
         }
     }
     else if (cmd == GET_RSVPS_LIST) {
+        string eventId = peekFirstToken(input, SPACE);
         if (requestSucceed) {
             string sortedRSVPs = getSortedRSVPs(response);
-            writeToClientLog("The RSVP's list for event id " + input + 
+            writeToClientLog("The RSVP’s list for event id " + eventId +
                                      " is: " + sortedRSVPs);
         }
         else {
-            writeErrToClientLog(FAILED,"get RSVP's list to event id " + input + 
-                    ": the event doesn't exists" ,"");
+            writeToLog(logName, "ERROR\thandleResponse\t"
+                    "the event doesn't exists");
         }
     }
     else if (cmd == UNREGISTER) {

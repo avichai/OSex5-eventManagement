@@ -7,10 +7,10 @@ FILES = emServer.cpp emClient.cpp Utils.h Utils.cpp
 
 all: emServer emClient
 
-emServer: emServer.cpp Utils.h
+emServer: emServer.cpp Utils.h Utils.cpp
 	${CC} ${CFLAGS} ${SERVER_FLAGS} emServer.cpp Utils.cpp -o emServer
 
-emClient: emClient.cpp Utils.h
+emClient: emClient.cpp Utils.h Utils.cpp
 	${CC} ${CFLAGS} emClient.cpp Utils.cpp -o emClient
 
 tar:

@@ -70,7 +70,7 @@ void writeToLog(string logName, string data) {
     }
 
     gLogFile << getTime(true) << "\t" << data << ".\n";
-    cerr << getTime(true) << "\t" << data << ".\n"; //todo: remove
+    cerr << getTime(true) << "\t" << data << ".\n";  //todo
     gLogFile.close();
 }
 
@@ -158,7 +158,7 @@ string readData(int socket, string logName) {
 
     int messageSize = stoi(messageSizeStr);
 
-    char* message = (char*) malloc(messageSize);
+    char* message = (char*) malloc((size_t) messageSize);
     readHelper(socket,message,messageSize,logName);
     string messageStr = string(message);
     free(message);

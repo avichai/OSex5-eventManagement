@@ -181,7 +181,7 @@ static void sendToClient(int accSocket, string mess) {
  * exists.
  */
 static void handleNotFoundID(int acceptSocket, int curId) {
-    writeToLog("ERROR: event id: " + to_string(curId) +
+    writeToLog("ERROR\thandleNotFoundID\tevent id: " + to_string(curId) +
             " is not on the server events id's list");
     string mess = REQUEST_FAILURE;
     sendToClient(acceptSocket, mess);
@@ -307,13 +307,19 @@ static void handleSendRSVP(int acceptSocket, vector<string> argFromClient) {
         handleNotFoundID(acceptSocket, curId);
     }
     else {
-        string mess;
-        string data = clientName;
+        string mess = REQUEST_SUCCESS;
+        string data = clientName + "\tis ";
         Event *event = eventPair->second;
-        event->rsvpList.insert(clientName);
 
-        data += "\tis RSVP to event with id " + to_string(curId);
-        mess = REQUEST_SUCCESS;
+        if (event->rsvpList.find(clientName) == event->rsvpList.end()) {
+            event->rsvpList.insert(clientName);
+        }
+        else {  // client already rsvp (sends to client this is the case).
+            data += "already ";
+            mess += SPACE;
+            mess += REQUEST_FAILURE;
+        }
+        data += "RSVP to event with id " + to_string(curId);
 
         writeToLog(data);
         sendToClient(acceptSocket, mess);
@@ -328,23 +334,13 @@ static void handleSendRSVP(int acceptSocket, vector<string> argFromClient) {
 static void handleGetRSVPList(int acceptSocket, vector<string> argFromClient) {
     string clientName = argFromClient[CLIENT_NAME_IN_VECTOR_INDEX];
 
-
-
-
     const char *curIdStr = argFromClient[EVENT_ID_IN_VECTOR_INDEX].c_str();
 
     unsigned int curId = (unsigned int) stoi(curIdStr);
-
-
-
-
     checkSyscall(LOG_FILENAME, pthread_mutex_lock(&gEventsMutex),
                        "pthread_mutex_lock");
 
-
     auto eventPair = gEventsMap.find(curId);
-
-
 
     if (eventPair == gEventsMap.end()) {
         handleNotFoundID(acceptSocket, curId);
@@ -357,15 +353,16 @@ static void handleGetRSVPList(int acceptSocket, vector<string> argFromClient) {
             for (string rsvp : event->rsvpList) {
                 rsvplist += rsvp + COMMA;
             }
-                rsvplist.pop_back();
+                rsvplist.pop_back();  // P’s l
         }
 
         string mess = REQUEST_SUCCESS;
         mess += " " + rsvplist;
         sendToClient(acceptSocket, mess);
 
-        string data = clientName + "\trequests the RSVP's list for event id " +
-                to_string(curId);
+        string data = clientName + "\trequests the RSVP’s "
+                                           "list for event with id " +
+                                            to_string(curId);
         writeToLog(data);
     }
     checkSyscall(LOG_FILENAME, pthread_mutex_unlock(&gEventsMutex),
@@ -462,8 +459,6 @@ static int establish(unsigned short portnum) {
     memcpy(&sa.sin_addr,hp->h_addr,hp->h_length);
     sa.sin_port = htons(portnum);
 
-    cerr << "addr: " << inet_ntoa(sa.sin_addr) << endl;//todo
-
     serverS = socket(AF_INET,SOCK_STREAM,0);
     checkSyscall(LOG_FILENAME, serverS, "socket");
 
@@ -484,6 +479,10 @@ int main(int argc, char *argv[]) {
         cout << "Usage: emServer portNum" << endl;
         return 0;
     }
+
+    ofstream of;
+    of.open(LOG_FILENAME, ios::app);
+    of.close();
 
     int serverS = establish((unsigned short) portNum);
 
