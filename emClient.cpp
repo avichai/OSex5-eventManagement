@@ -72,9 +72,9 @@ static bool validCreateLength(string data) {
     string title = popNextToken(data,SPACE);
     string date = popNextToken(data,SPACE);
     string desc = popNextToken(data,SPACE);
-    return ((title.length() <= CREATE_TITLE_LEN) ||
-            (date.length() <= CREATE_DATE_LEN) ||
-            (desc.length() <= CREATE_DATE_LEN));
+    return ((title.length() <= CREATE_TITLE_LEN) &&
+            (date.length() <= CREATE_DATE_LEN) &&
+            (desc.length() <= CREATE_DESC_LEN));
 }
 
 /*
