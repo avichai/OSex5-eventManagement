@@ -36,7 +36,6 @@ enum ERROR_TYPE {ILLEGAL_CMD, MISSING_ARG, INVALID_ARG,
 
 // forward declarations
 static bool validCreateNArgs(string data);
-static bool validCreateArgs(string data, string & invalidArg);
 static string getSortedEvents(string events);
 static void assignLogName(string clientName);
 static void writeToClientLog(string message);

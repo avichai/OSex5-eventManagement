@@ -8,7 +8,6 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <thread_db.h>
-#include <assert.h>
 #include <set>
 
 
